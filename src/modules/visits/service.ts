@@ -1,0 +1,136 @@
+import { randomUUID } from 'node:crypto';
+import type { z } from 'zod';
+import type { Actor, Ctx } from '../../context';
+import { AppError } from '../../utils/errors';
+import { changedKeys, inTransaction, mapRow, mapRows, nowIso, orderBy, updateRow } from '../../utils/db';
+import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
+import { appendAuditEvent } from '../audit/chain';
+import type { PatientService } from '../patients/service';
+import type { createVisitBody, listVisitsQuery, updateVisitBody } from './schemas';
+
+export type VisitStatus = 'scheduled' | 'otp_pending' | 'verified' | 'completed' | 'missed' | 'cancelled';
+
+export interface VisitDto {
+  id: string; enrollmentId: string; patientId: string; trialId: string; trialSiteId: string; visitType: string;
+  scheduledAt: string; status: VisitStatus; otpIssuedAt: string | null; verifiedAt: string | null; verifiedBy: string | null;
+  completedAt: string | null; notes: string | null; createdBy: string | null; createdAt: string; updatedAt: string;
+}
+
+/** `otp_pending` and `verified` are reachable only through the OTP flow, never via the status endpoint. */
+export const VISIT_TRANSITIONS: TransitionMap<VisitStatus> = {
+  scheduled: ['otp_pending', 'missed', 'cancelled'],
+  otp_pending: ['verified', 'missed', 'cancelled'],
+  verified: ['completed', 'cancelled'],
+  completed: [],
+  missed: [],
+  cancelled: [],
+};
+
+const COLS = `id, enrollment_id, patient_id, trial_id, trial_site_id, visit_type, scheduled_at, status, otp_issued_at,
+  verified_at, verified_by, completed_at, notes, created_by, created_at, updated_at`;
+
+export function createVisitService(ctx: Ctx, patients: PatientService) {
+  const { db } = ctx;
+
+  const get = (id: string): VisitDto => {
+    const v = mapRow<VisitDto>(db.prepare(`SELECT ${COLS} FROM visits WHERE id = ?`).get(id) as any);
+    if (!v) throw AppError.notFound('Visit');
+    return v;
+  };
+
+  /** Patients may access only visits that belong to their own patient record. */
+  const assertAccess = (visit: VisitDto, actor: Actor) => {
+    if (actor.role !== 'patient') return;
+    const own = patients.find(visit.patientId);
+    if (!own || own.userId !== actor.id) throw AppError.forbidden();
+  };
+
+  return {
+    get,
+    assertAccess,
+
+    getForActor(id: string, actor: Actor): VisitDto {
+      const v = get(id);
+      assertAccess(v, actor);
+      return v;
+    },
+
+    create(input: z.infer<typeof createVisitBody>, actor: Actor): VisitDto {
+      const id = randomUUID();
+      const now = nowIso();
+      inTransaction(db, () => {
+        const enr = db.prepare('SELECT patient_id, trial_id, trial_site_id, status FROM enrollments WHERE id = ?').get(input.enrollmentId) as
+          | { patient_id: string; trial_id: string; trial_site_id: string; status: string } | undefined;
+        if (!enr) throw AppError.notFound('Enrollment');
+        if (!['screening', 'enrolled'].includes(enr.status)) throw AppError.conflict(`Cannot schedule visits for an enrolment with status '${enr.status}'`);
+        const trial = db.prepare('SELECT status FROM trials WHERE id = ? AND deleted_at IS NULL').get(enr.trial_id) as { status: string } | undefined;
+        if (!trial || !['draft', 'active'].includes(trial.status)) throw AppError.conflict('Trial is not accepting visits');
+        db.prepare(
+          `INSERT INTO visits (id, enrollment_id, patient_id, trial_id, trial_site_id, visit_type, scheduled_at, status, notes, created_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?, ?, ?)`,
+        ).run(id, input.enrollmentId, enr.patient_id, enr.trial_id, enr.trial_site_id, input.visitType, new Date(input.scheduledAt).toISOString(), input.notes ?? null, actor.id, now, now);
+        appendAuditEvent(db, {
+          actorId: actor.id, action: 'visit.created', entityType: 'visit', entityId: id,
+          metadata: { patientId: enr.patient_id, trialId: enr.trial_id, visitType: input.visitType, scheduledAt: input.scheduledAt },
+        });
+      });
+      return get(id);
+    },
+
+    list(q: z.infer<typeof listVisitsQuery>) {
+      const where: string[] = [];
+      const params: unknown[] = [];
+      for (const [col, v] of [
+        ['patient_id', q.patientId], ['trial_id', q.trialId], ['trial_site_id', q.trialSiteId],
+        ['enrollment_id', q.enrollmentId], ['status', q.status],
+      ] as const) if (v) { where.push(`${col} = ?`); params.push(v); }
+      if (q.from) { where.push('scheduled_at >= ?'); params.push(new Date(q.from).toISOString()); }
+      if (q.to) { where.push('scheduled_at <= ?'); params.push(new Date(q.to).toISOString()); }
+      const w = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const total = (db.prepare(`SELECT COUNT(*) c FROM visits ${w}`).get(...params) as { c: number }).c;
+      const ob = orderBy(q.sort, q.order, { scheduledAt: 'scheduled_at', createdAt: 'created_at' }, 'scheduled_at');
+      const rows = db.prepare(`SELECT ${COLS} FROM visits ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
+      return { items: mapRows<VisitDto>(rows), total };
+    },
+
+    update(id: string, patch: z.infer<typeof updateVisitBody>, actor: Actor): VisitDto {
+      inTransaction(db, () => {
+        const v = get(id);
+        if (!['scheduled', 'otp_pending'].includes(v.status)) throw AppError.conflict(`A visit with status '${v.status}' can no longer be edited`);
+        const norm = { ...patch, ...(patch.scheduledAt ? { scheduledAt: new Date(patch.scheduledAt).toISOString() } : {}) };
+        const keys = changedKeys(v as unknown as Record<string, unknown>, norm);
+        if (keys.length === 0) return;
+        updateRow(db, 'visits', id, Object.fromEntries(keys.map((k) => [k, (norm as Record<string, unknown>)[k]])));
+        appendAuditEvent(db, {
+          actorId: actor.id, action: 'visit.updated', entityType: 'visit', entityId: id,
+          metadata: {
+            changedFields: keys,
+            ...(keys.includes('scheduledAt') ? { scheduledAt: { from: v.scheduledAt, to: norm.scheduledAt } } : {}),
+          },
+        });
+      });
+      return get(id);
+    },
+
+    /** Terminal transitions: completed (requires verification), missed, cancelled. */
+    changeStatus(id: string, status: 'completed' | 'missed' | 'cancelled', note: string | undefined, actor: Actor): VisitDto {
+      inTransaction(db, () => {
+        const v = get(id);
+        assertTransition('Visit', VISIT_TRANSITIONS, v.status, status);
+        const now = nowIso();
+        updateRow(db, 'visits', id, { status, ...(status === 'completed' ? { completedAt: now } : {}) });
+        // Any live OTP must not outlive a closed visit.
+        if (status !== 'completed') {
+          db.prepare(`UPDATE otp_records SET status = 'superseded', updated_at = ? WHERE visit_id = ? AND status = 'active'`).run(now, id);
+        }
+        appendAuditEvent(db, {
+          actorId: actor.id, action: `visit.${status}`, entityType: 'visit', entityId: id,
+          metadata: { from: v.status, to: status, patientId: v.patientId, trialId: v.trialId, ...(note ? { note } : {}) },
+        });
+      });
+      return get(id);
+    },
+  };
+}
+
+export type VisitService = ReturnType<typeof createVisitService>;
