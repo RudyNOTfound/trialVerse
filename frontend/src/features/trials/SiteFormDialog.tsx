@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Input, Select } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { useUsersByRole } from '@/hooks/useUsersByRole';
+import { useStaffDirectory } from '@/hooks/useStaffDirectory';
 import type { TrialSite } from '@/types/api';
 
 const schema = z.object({
@@ -27,7 +27,7 @@ const EMPTY: Values = { siteCode: '', name: '', city: '', country: '', status: '
 export function SiteFormDialog({ trialId, open, onOpenChange, site }: { trialId: string; open: boolean; onOpenChange: (o: boolean) => void; site?: TrialSite }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const investigators = useUsersByRole('investigator', open);
+  const investigators = useStaffDirectory({ role: 'investigator', enabled: open });
   const [error, setError] = useState<unknown>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   useEffect(() => {
@@ -36,8 +36,8 @@ export function SiteFormDialog({ trialId, open, onOpenChange, site }: { trialId:
 
   const m = useMutation({
     mutationFn: (v: Values) => site
-      ? trialsApi.updateSite(trialId, site.id, { name: v.name, city: v.city || undefined, country: v.country, status: v.status, ...(investigators.isAdmin ? { principalInvestigatorId: v.principalInvestigatorId || null } : {}) })
-      : trialsApi.addSite(trialId, { siteCode: v.siteCode, name: v.name, city: v.city || undefined, country: v.country, ...(investigators.isAdmin && v.principalInvestigatorId ? { principalInvestigatorId: v.principalInvestigatorId } : {}) }),
+      ? trialsApi.updateSite(trialId, site.id, { name: v.name, city: v.city || undefined, country: v.country, status: v.status, principalInvestigatorId: v.principalInvestigatorId || null })
+      : trialsApi.addSite(trialId, { siteCode: v.siteCode, name: v.name, city: v.city || undefined, country: v.country, ...(v.principalInvestigatorId ? { principalInvestigatorId: v.principalInvestigatorId } : {}) }),
     onSuccess: () => {
       toast.success(site ? 'Site updated' : 'Site added');
       for (const k of ['trial-sites', 'trial-site', 'directory']) qc.invalidateQueries({ queryKey: [k] });
@@ -58,15 +58,13 @@ export function SiteFormDialog({ trialId, open, onOpenChange, site }: { trialId:
             <Field label="Country" error={errors.country?.message}><Input {...register('country')} /></Field>
             {site && <Field label="Status" error={errors.status?.message}><Select {...register('status')}><option value="active">Active</option><option value="inactive">Inactive</option><option value="closed">Closed</option></Select></Field>}
           </div>
-          {investigators.isAdmin ? (
-            <Field label="Principal investigator" hint="Must be an active investigator account.">
-              <Select {...register('principalInvestigatorId')} disabled={investigators.isLoading}>
-                <option value="">None assigned</option>
-                {pi.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
-                {site?.principalInvestigatorId && !pi.some((u) => u.id === site.principalInvestigatorId) && <option value={site.principalInvestigatorId}>Current investigator (inactive)</option>}
-              </Select>
-            </Field>
-          ) : <p className="text-xs text-muted">Only administrators can assign a principal investigator.</p>}
+          <Field label="Principal investigator" hint="Must be an active investigator account.">
+            <Select {...register('principalInvestigatorId')} disabled={investigators.isLoading}>
+              <option value="">None assigned</option>
+              {pi.map((u) => <option key={u.id} value={u.id}>{u.fullName}</option>)}
+              {site?.principalInvestigatorId && !pi.some((u) => u.id === site.principalInvestigatorId) && <option value={site.principalInvestigatorId}>{site.principalInvestigatorName ?? 'Current investigator'} (inactive)</option>}
+            </Select>
+          </Field>
           <InlineError error={error} />
           <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button><Button type="submit" loading={m.isPending}>{site ? 'Save changes' : 'Add site'}</Button></div>
         </form>

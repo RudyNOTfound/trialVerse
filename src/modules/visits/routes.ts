@@ -6,11 +6,13 @@ import { AppError } from '../../utils/errors';
 import { asyncHandler, idParam, ok, paginated } from '../../utils/http';
 import type { PatientService } from '../patients/service';
 import type { OtpService } from './otp';
+import { createVisitHistory } from './history';
 import type { VisitService } from './service';
 import { createVisitBody, listVisitsQuery, updateVisitBody, verifyOtpBody, visitStatusBody } from './schemas';
 
 export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, patients: PatientService) {
   const r = Router();
+  const history = createVisitHistory(ctx);
   r.use(authenticate(ctx));
 
   r.get('/', validate({ query: listVisitsQuery }), asyncHandler((req, res) => {
@@ -25,6 +27,12 @@ export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, pa
   r.get('/:id', validate({ params: idParam }), asyncHandler((req, res) => ok(res, visits.getForActor(req.valid!.params.id, actorOf(req)))));
   r.patch('/:id', requireRole('admin', 'coordinator'), validate({ params: idParam, body: updateVisitBody }), asyncHandler((req, res) =>
     ok(res, visits.update(req.valid!.params.id, req.body, actorOf(req)))));
+
+  // Staff only: the history is derived from the audit trail (actors, OTP failures), which participants do not see.
+  r.get('/:id/history', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam }), asyncHandler((req, res) => {
+    const visit = visits.get(req.valid!.params.id); // 404 if the visit does not exist
+    ok(res, history.list(visit.id));
+  }));
 
   // completed requires prior OTP verification (enforced by the state machine); only clinicians close visits.
   r.post('/:id/status', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam, body: visitStatusBody }), asyncHandler((req, res) => {

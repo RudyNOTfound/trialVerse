@@ -9,7 +9,6 @@ import { InlineError } from '@/components/common/States';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate } from '@/utils/format';
 import type { Reimbursement } from '@/types/api';
 
@@ -25,7 +24,6 @@ type Values = z.infer<typeof schema>;
 /** Create (staff, or a participant for their own visit) or edit a pending reimbursement. */
 export function ReimbursementFormDialog({ open, onOpenChange, existing, patientId }: { open: boolean; onOpenChange: (o: boolean) => void; existing?: Reimbursement; patientId?: string }) {
   const qc = useQueryClient();
-  const dir = useDirectory();
   const [error, setError] = useState<unknown>(null);
   const visits = useQuery({ queryKey: ['visits', 'claimable', patientId ?? 'all'], enabled: open && !existing, queryFn: () => visitsApi.list({ pageSize: 100, patientId, order: 'desc' }) });
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { visitId: '', category: 'travel', amount: '', description: '' } });
@@ -53,7 +51,7 @@ export function ReimbursementFormDialog({ open, onOpenChange, existing, patientI
           {!existing && (
             <Field label="Visit" error={errors.visitId?.message} hint={!visits.isLoading && !claimable.length ? 'No eligible visits found.' : undefined}>
               <Select {...register('visitId')}><option value="">Select visit…</option>
-                {claimable.map((v) => <option key={v.id} value={v.id}>{patientId ? '' : `${dir.patientName(v.patientId)} · `}{v.visitType} · {formatDate(v.scheduledAt)} ({v.status.replace('_', ' ')})</option>)}</Select>
+                {claimable.map((v) => <option key={v.id} value={v.id}>{patientId ? '' : `${v.patientName ?? '—'} · `}{v.visitType} · {formatDate(v.scheduledAt)} ({v.status.replace('_', ' ')})</option>)}</Select>
             </Field>
           )}
           <div className="grid gap-4 sm:grid-cols-2">

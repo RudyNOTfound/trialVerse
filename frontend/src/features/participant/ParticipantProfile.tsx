@@ -20,7 +20,7 @@ export default function ParticipantProfile() {
         <CardContent className="space-y-3">{row('Subject code', <span className="font-mono">{p.subjectCode}</span>)}{row('Date of birth', formatDate(p.dateOfBirth))}{row('Sex', <span className="capitalize">{p.sex}</span>)}{row('Email', p.email ?? user?.email ?? '—')}{row('Phone', p.phone ?? '—')}</CardContent></Card>
       <Card><CardHeader><CardTitle>Enrollment</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {enrollments.isLoading ? <Skeleton className="h-10" /> : enrollments.data?.items.length ? enrollments.data.items.map((e) => <div key={e.id} className="space-y-2">{row('Status', <StatusBadge value={e.status} />)}{row('Study arm', e.arm ?? '—')}{row('Enrolled', formatDate(e.enrolledAt))}{e.endedAt && row('Ended', formatDate(e.endedAt))}</div>) : <p className="text-sm text-muted">Not enrolled in a trial.</p>}
+          {enrollments.isLoading ? <Skeleton className="h-10" /> : enrollments.data?.items.length ? enrollments.data.items.map((e) => <div key={e.id} className="space-y-2">{row('Trial', e.trialTitle ? `${e.trialCode} · ${e.trialTitle}` : '—')}{row('Site', e.siteName ?? '—')}{row('Status', <StatusBadge value={e.status} />)}{row('Study arm', e.arm ?? '—')}{row('Enrolled', formatDate(e.enrolledAt))}{e.endedAt && row('Ended', formatDate(e.endedAt))}</div>) : <p className="text-sm text-muted">Not enrolled in a trial.</p>}
         </CardContent></Card>
       <p className="text-center text-xs text-muted">To change your details, contact your clinic coordinator.</p>
       <button onClick={logout} className="w-full rounded-lg border border-line bg-white py-2.5 text-sm font-medium text-slate-700 sm:hidden">Log out</button>

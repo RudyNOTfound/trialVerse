@@ -106,13 +106,27 @@ Append-only `audit_logs`; each event stores `prev_hash` and `hash = SHA-256(cano
 ### Risk and integrity engines
 Two independent, rule-based baselines with configurable thresholds/weights, usable without ML. Both sit behind interfaces so ML models can replace or augment them with automatic fallback — see [ML integration](docs/ML_INTEGRATION.md).
 
+## API additions (Phase 3)
+
+All additive; no existing endpoint or field was removed or renamed. Full list in [docs/API_ENDPOINTS.md](docs/API_ENDPOINTS.md).
+
+| Area | Change | Roles |
+|---|---|---|
+| Staff directory | `GET /users/directory`: `id, fullName, role, isActive` for staff only; no email, no patient accounts; inactive staff hidden unless `includeInactive=true` | admin, coordinator, investigator |
+| Account linking | `GET /patients/linkable-accounts` (active, unlinked patient accounts: `id, fullName, email, createdAt`); `POST /patients/:id/account` `{userId}`; `DELETE /patients/:id/account`. Validates role, active, no duplicate in either direction (409); audited as `patient.account_linked` / `patient.account_unlinked`. `PATCH /patients/:id` with `userId` now also rejects deactivated accounts | admin, coordinator |
+| Visit history | `GET /visits/:id/history`: curated, read-only projection of the visit's audit events with actor names (no hashes, no raw metadata, never an OTP) | admin, coordinator, investigator (participants: 403) |
+| Dashboard stats | `GET /stats/operations`, `/stats/visits`, `/stats/reimbursements`, `/stats/sponsor`: SQL aggregates (constant query count), zero-filled status maps; money grouped per currency; sponsor risk uses each entity's latest assessment | staff; `/stats/sponsor` admin + investigator |
+| Embedded names | `patientName, patientCode, trialCode, trialTitle, siteName, verifiedByName` on visits; `patientName, trialCode, siteName` on enrollments; `principalInvestigatorName` on sites; `patientName, trialCode, requestedByName, reviewedByName` on reimbursements; `assigneeName, createdByName, patientName` on actions; `entityName` on risk assessments and alerts, `resolvedByName` on alerts; `actorName, actorRole` on audit events; `actorName` on status history; `portalAccountName` on patients | unchanged (same visibility as the parent resource) |
+
+Names are resolved with one batched `IN (...)` query per related table per response (no N+1). There are **no schema changes**.
+
 ## Testing
 
 ```bash
 npm test
 ```
 
-176 tests in 14 files run against in-memory SQLite (no external services): auth, RBAC, schema/constraints, patients & trials, visits, OTP generation/verification/expiry/reuse/lockout, audit hashing/verification/tamper detection/concurrency, reimbursements, actions, risk engine, integrity engine, ML contracts/fallback (against a real local HTTP model stub), API validation/errors/OpenAPI, seed, and an end-to-end workflow.
+211 tests in 15 files run against in-memory SQLite (no external services): auth, RBAC, schema/constraints, patients & trials, visits, OTP generation/verification/expiry/reuse/lockout, audit hashing/verification/tamper detection/concurrency, reimbursements, actions, risk engine, integrity engine, ML contracts/fallback (against a real local HTTP model stub), API validation/errors/OpenAPI, seed, an end-to-end workflow, and the Phase 3 additions (directory, account linking, embedded names, visit history, stats).
 
 ## Project layout
 
@@ -132,6 +146,9 @@ docs/            architecture, schema, API, ML contract
 ```
 
 ## Known limitations (Phase 0)
+
+- **Portal links survive patient deletion**: a soft-deleted patient keeps `user_id`, so that account cannot be linked to another patient record (the column is unique).
+- **Staff directory / linkable accounts expose names** (and, for unlinked registrations, email) to coordinators by design; scope is limited to what the linking and assignment workflows need.
 
 - **OTP delivery**: OTPs are generated and verified but not sent (no SMS/email provider). In production nothing returns the code, so a delivery integration is required in Phase 1.
 - **SQLite**: single-writer; excellent for development and modest deployments. The service layer uses plain SQL with no ORM; moving to PostgreSQL means porting `better-sqlite3` calls (sync → async) and the migrations. The audit append would then need a row lock/advisory lock on the head row.

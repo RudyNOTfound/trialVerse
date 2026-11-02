@@ -12,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RowActions } from '@/components/common/RowActions';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate, humanize } from '@/utils/format';
 import { TRIAL_NEXT } from '@/utils/transitions';
 import type { TrialSite } from '@/types/api';
@@ -26,7 +25,6 @@ export default function TrialDetailPage({ backTo = '/app/trials', readOnly = fal
   const qc = useQueryClient();
   const toast = useToast();
   const { hasRole } = useAuth();
-  const dir = useDirectory();
   const [siteOpen, setSiteOpen] = useState(false);
   const [editSite, setEditSite] = useState<TrialSite | undefined>();
   const [editing, setEditing] = useState(false);
@@ -88,11 +86,11 @@ export default function TrialDetailPage({ backTo = '/app/trials', readOnly = fal
         ]} />
 
       <p className="mb-2 mt-6 text-sm font-semibold">Enrolled participants</p>
-      <DataTable rows={enrollments.data?.items} rowKey={(e) => e.id} loading={enrollments.isLoading || dir.loading} error={enrollments.error} emptyTitle="No participants enrolled"
+      <DataTable rows={enrollments.data?.items} rowKey={(e) => e.id} loading={enrollments.isLoading} error={enrollments.error} emptyTitle="No participants enrolled"
         onRowClick={readOnly ? undefined : (e) => nav(`/app/patients/${e.patientId}`)}
         columns={[
-          { header: 'Patient', cell: (e) => <span className="font-medium">{dir.patientName(e.patientId)}</span> },
-          { header: 'Site', cell: (e) => dir.siteName(e.trialSiteId), hideOnMobile: true },
+          { header: 'Patient', cell: (e) => <span className="font-medium">{e.patientName ?? '—'}</span> },
+          { header: 'Site', cell: (e) => e.siteName ?? '—', hideOnMobile: true },
           { header: 'Arm', cell: (e) => e.arm ?? '—', hideOnMobile: true },
           { header: 'Enrolled', cell: (e) => formatDate(e.enrolledAt), hideOnMobile: true },
           { header: 'Status', cell: (e) => <StatusBadge value={e.status} /> },

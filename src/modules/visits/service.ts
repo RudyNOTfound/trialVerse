@@ -5,6 +5,7 @@ import { AppError } from '../../utils/errors';
 import { changedKeys, inTransaction, mapRow, mapRows, nowIso, orderBy, updateRow } from '../../utils/db';
 import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
 import { appendAuditEvent } from '../audit/chain';
+import { createLookups } from '../../utils/lookups';
 import type { PatientService } from '../patients/service';
 import type { createVisitBody, listVisitsQuery, updateVisitBody } from './schemas';
 
@@ -14,6 +15,9 @@ export interface VisitDto {
   id: string; enrollmentId: string; patientId: string; trialId: string; trialSiteId: string; visitType: string;
   scheduledAt: string; status: VisitStatus; otpIssuedAt: string | null; verifiedAt: string | null; verifiedBy: string | null;
   completedAt: string | null; notes: string | null; createdBy: string | null; createdAt: string; updatedAt: string;
+  /** Embedded display names (additive, read-only). */
+  patientName?: string | null; patientCode?: string | null; trialCode?: string | null; trialTitle?: string | null;
+  siteName?: string | null; verifiedByName?: string | null;
 }
 
 /** `otp_pending` and `verified` are reachable only through the OTP flow, never via the status endpoint. */
@@ -31,11 +35,26 @@ const COLS = `id, enrollment_id, patient_id, trial_id, trial_site_id, visit_type
 
 export function createVisitService(ctx: Ctx, patients: PatientService) {
   const { db } = ctx;
+  const lookups = createLookups(db);
+
+  /** Adds patient / trial / site / verifier names with one batched query per related table. */
+  const withNames = (items: VisitDto[]): VisitDto[] => {
+    const p = lookups.patients(items.map((v) => v.patientId));
+    const t = lookups.trials(items.map((v) => v.trialId));
+    const s = lookups.sites(items.map((v) => v.trialSiteId));
+    const u = lookups.users(items.map((v) => v.verifiedBy));
+    return items.map((v) => ({
+      ...v,
+      patientName: p.get(v.patientId)?.name ?? null, patientCode: p.get(v.patientId)?.code ?? null,
+      trialCode: t.get(v.trialId)?.code ?? null, trialTitle: t.get(v.trialId)?.title ?? null,
+      siteName: s.get(v.trialSiteId)?.name ?? null, verifiedByName: v.verifiedBy ? u.get(v.verifiedBy)?.name ?? null : null,
+    }));
+  };
 
   const get = (id: string): VisitDto => {
     const v = mapRow<VisitDto>(db.prepare(`SELECT ${COLS} FROM visits WHERE id = ?`).get(id) as any);
     if (!v) throw AppError.notFound('Visit');
-    return v;
+    return withNames([v])[0]!;
   };
 
   /** Patients may access only visits that belong to their own patient record. */
@@ -90,7 +109,7 @@ export function createVisitService(ctx: Ctx, patients: PatientService) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM visits ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { scheduledAt: 'scheduled_at', createdAt: 'created_at' }, 'scheduled_at');
       const rows = db.prepare(`SELECT ${COLS} FROM visits ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<VisitDto>(rows), total };
+      return { items: withNames(mapRows<VisitDto>(rows)), total };
     },
 
     update(id: string, patch: z.infer<typeof updateVisitBody>, actor: Actor): VisitDto {

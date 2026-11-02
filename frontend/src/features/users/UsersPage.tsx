@@ -37,7 +37,7 @@ export default function UsersPage() {
 
   const toggle = useMutation({
     mutationFn: (u: User) => usersApi.update(u.id, { isActive: !u.isActive }),
-    onSuccess: (u) => { toast.success(`${u.fullName} ${u.isActive ? 'activated' : 'deactivated'}`); for (const k of ['users', 'user', 'users-by-role', 'directory']) qc.invalidateQueries({ queryKey: [k] }); },
+    onSuccess: (u) => { toast.success(`${u.fullName} ${u.isActive ? 'activated' : 'deactivated'}`); for (const k of ['users', 'user', 'staff-directory', 'linkable-accounts', 'directory']) qc.invalidateQueries({ queryKey: [k] }); },
   });
 
   return (

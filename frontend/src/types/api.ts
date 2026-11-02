@@ -40,6 +40,8 @@ export interface Patient {
   status: PatientStatus;
   createdAt: string;
   updatedAt: string;
+  /** Embedded by the API: display name of the linked portal account. */
+  portalAccountName?: string | null;
 }
 
 export type TrialStatus = 'draft' | 'active' | 'suspended' | 'completed' | 'terminated';
@@ -70,6 +72,7 @@ export interface TrialSite {
   status: 'active' | 'inactive' | 'closed';
   createdAt: string;
   updatedAt: string;
+  principalInvestigatorName?: string | null;
 }
 
 export type EnrollmentStatus = 'screening' | 'enrolled' | 'completed' | 'withdrawn' | 'screen_failed';
@@ -84,6 +87,12 @@ export interface Enrollment {
   endedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Embedded by the API. */
+  patientName?: string | null;
+  patientCode?: string | null;
+  trialCode?: string | null;
+  trialTitle?: string | null;
+  siteName?: string | null;
 }
 
 export type VisitStatus = 'scheduled' | 'otp_pending' | 'verified' | 'completed' | 'missed' | 'cancelled';
@@ -104,6 +113,13 @@ export interface Visit {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  /** Embedded by the API. */
+  patientName?: string | null;
+  patientCode?: string | null;
+  trialCode?: string | null;
+  trialTitle?: string | null;
+  siteName?: string | null;
+  verifiedByName?: string | null;
 }
 
 export type OtpState = 'active' | 'used' | 'locked' | 'expired' | 'superseded';
@@ -149,6 +165,11 @@ export interface Reimbursement {
   transactionRef: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Embedded by the API. */
+  patientName?: string | null;
+  trialCode?: string | null;
+  requestedByName?: string | null;
+  reviewedByName?: string | null;
 }
 
 export interface HistoryEntry {
@@ -161,6 +182,7 @@ export interface HistoryEntry {
   actorId: string | null;
   note: string | null;
   createdAt: string;
+  actorName?: string | null;
 }
 
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
@@ -182,6 +204,10 @@ export interface ActionItem {
   updatedAt: string;
   isOverdue: boolean;
   effectiveStatus: ActionStatus | 'overdue';
+  /** Embedded by the API. */
+  assigneeName?: string | null;
+  createdByName?: string | null;
+  patientName?: string | null;
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
@@ -200,6 +226,8 @@ export interface RiskAssessment {
   assessedAt: string;
   requestedBy: string | null;
   createdAt: string;
+  /** Embedded by the API: label of the assessed patient / visit / reimbursement. */
+  entityName?: string | null;
 }
 export interface RuleConfig { enabled: boolean; weight: number; threshold: number; params?: Record<string, unknown> }
 export interface RiskRulesConfig {
@@ -225,6 +253,9 @@ export interface IntegrityAlert {
   detectedAt: string;
   createdAt: string;
   updatedAt: string;
+  /** Embedded by the API. */
+  resolvedByName?: string | null;
+  entityName?: string | null;
 }
 
 export interface AuditEvent {
@@ -238,6 +269,9 @@ export interface AuditEvent {
   createdAt: string;
   prevHash: string;
   hash: string;
+  /** Embedded by the API (display only; the hash chain covers actorId). */
+  actorName?: string | null;
+  actorRole?: string | null;
 }
 export interface ChainVerification {
   valid: boolean;
@@ -265,4 +299,66 @@ export interface IntegrityScanSummary {
 export interface IntegrityRulesConfig {
   engine: { name: string; version: string };
   baselineConfig: Record<string, { enabled: boolean } & Record<string, boolean | number>>;
+}
+
+/** GET /users/directory (staff only, minimal fields). */
+export interface StaffEntry { id: string; fullName: string; role: 'admin' | 'coordinator' | 'investigator'; isActive: boolean }
+
+/** GET /patients/linkable-accounts: registered patient accounts waiting to be linked. */
+export interface LinkableAccount { id: string; fullName: string; email: string; createdAt: string }
+
+/** GET /visits/:id/history: curated, read-only view of the visit's audit trail. */
+export interface VisitHistoryEntry {
+  id: string;
+  at: string;
+  action: string;
+  kind: 'schedule' | 'edit' | 'otp' | 'status';
+  label: string;
+  actor: { id: string; name: string | null; role: string | null } | null;
+  from?: string;
+  to?: string;
+  scheduledAt?: { from: string; to: string };
+  changedFields?: string[];
+  reason?: string;
+  attempt?: number;
+  maxAttempts?: number;
+  note?: string;
+}
+
+// ---- /stats/* (server-side aggregates)
+export type CountMap = Record<string, number>;
+export interface OperationsStats {
+  generatedAt: string;
+  patients: { total: number; byStatus: CountMap };
+  trials: { total: number; byStatus: CountMap };
+  enrollments: { total: number; byStatus: CountMap };
+  visits: { total: number; byStatus: CountMap; pastDueUnverified: number };
+  actions: { total: number; byStatus: CountMap; overdue: number };
+  reimbursements: { total: number; byStatus: CountMap; byPaymentStatus: CountMap };
+}
+export interface UpcomingVisit { id: string; visitType: string; scheduledAt: string; status: VisitStatus; patientId: string; patientName: string | null; trialId: string; trialCode: string | null; siteName: string | null }
+export interface VisitStats { generatedAt: string; total: number; byStatus: CountMap; windowDays: number; upcomingInWindow: number; upcoming: UpcomingVisit[] }
+export interface ReimbursementStats {
+  generatedAt: string;
+  total: number;
+  byStatus: CountMap;
+  byPaymentStatus: CountMap;
+  byCategory: Array<{ category: string; currency: string; count: number; amountCents: number }>;
+  totals: Array<{ currency: string; count: number; amountCents: number; pendingAmountCents: number; approvedAmountCents: number; paidAmountCents: number }>;
+  oldestPendingAt: string | null;
+}
+export interface SponsorStats {
+  generatedAt: string;
+  trials: { total: number; byStatus: CountMap };
+  risk: {
+    basis: string;
+    assessedEntities: number;
+    byLevel: CountMap;
+    byEntityType: Record<string, CountMap>;
+    highOrCritical: number;
+    storedAssessments: number;
+    top: Array<{ id: string; entityType: string; entityId: string; entityName: string | null; score: number; level: RiskLevel; assessedAt: string }>;
+  };
+  integrity: { total: number; byStatus: CountMap; open: number; openBySeverity: CountMap };
+  audit: { totalEvents: number; headSeq: number; lastEventAt: string | null };
 }

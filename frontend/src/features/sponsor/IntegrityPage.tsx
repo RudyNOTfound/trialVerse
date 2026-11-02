@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Input, Textarea } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDateTime, humanize, shortId } from '@/utils/format';
 import { ALERT_NEXT } from '@/utils/transitions';
 import type { AlertStatus, IntegrityScanSummary, RiskLevel } from '@/types/api';
@@ -19,7 +18,6 @@ import type { AlertStatus, IntegrityScanSummary, RiskLevel } from '@/types/api';
 const ACTION_LABEL: Record<AlertStatus, string> = { open: 'Reopen', acknowledged: 'Acknowledge', resolved: 'Resolve', dismissed: 'Dismiss' };
 
 export default function IntegrityPage() {
-  const dir = useDirectory();
   const [status, setStatus] = useState('');
   const [severity, setSeverity] = useState('');
   const [page, setPage] = useState(1);
@@ -27,7 +25,7 @@ export default function IntegrityPage() {
   const [scanOpen, setScanOpen] = useState(false);
   const filters = { page, pageSize: 15, status: (status || undefined) as AlertStatus | undefined, severity: (severity || undefined) as RiskLevel | undefined, sort: 'severity' as const, order: 'desc' as const };
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['alerts', filters], queryFn: () => integrityApi.alerts(filters), placeholderData: (p) => p });
-  const entityName = (type: string, id: string) => (type === 'patient' ? dir.patientName(id) : `${humanize(type)} ${shortId(id)}`);
+  const entityName = (a: { entityName?: string | null; entityType: string; entityId: string }) => a.entityName ?? `${humanize(a.entityType)} ${shortId(a.entityId)}`;
 
   return (
     <>
@@ -42,12 +40,12 @@ export default function IntegrityPage() {
         columns={[
           { header: 'Severity', cell: (a) => <StatusBadge value={a.severity} /> },
           { header: 'Alert', cell: (a) => <div className="max-w-md"><p className="font-medium">{a.message}</p><p className="text-xs text-muted">{humanize(a.ruleId.replace(/^integrity\./, ''))}</p></div> },
-          { header: 'Affected', cell: (a) => <span className="text-slate-700">{entityName(a.entityType, a.entityId)}</span>, hideOnMobile: true },
+          { header: 'Affected', cell: (a) => <span className="text-slate-700">{entityName(a)}</span>, hideOnMobile: true },
           { header: 'Detected', cell: (a) => formatDateTime(a.detectedAt), hideOnMobile: true },
           { header: 'Status', cell: (a) => <StatusBadge value={a.status} /> },
         ]} />
       <ScanDialog open={scanOpen} onOpenChange={setScanOpen} />
-      <AlertDialog id={selected} onClose={() => setSelected(null)} entityName={entityName} />
+      <AlertDialog id={selected} onClose={() => setSelected(null)} />
     </>
   );
 }
@@ -87,9 +85,8 @@ function ScanDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: b
 }
 const Stat = ({ k, v }: { k: string; v: number }) => <div className="rounded-lg bg-slate-50 p-3"><dt className="text-xs text-muted">{k}</dt><dd className="text-2xl font-semibold tabular-nums">{v}</dd></div>;
 
-function AlertDialog({ id, onClose, entityName }: { id: string | null; onClose: () => void; entityName: (t: string, id: string) => string }) {
+function AlertDialog({ id, onClose }: { id: string | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const dir = useDirectory();
   const toast = useToast();
   const [note, setNote] = useState('');
   const [error, setError] = useState<unknown>(null);
@@ -109,10 +106,10 @@ function AlertDialog({ id, onClose, entityName }: { id: string | null; onClose: 
             <p className="text-sm font-medium text-ink">{d.message}</p>
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div><dt className="text-xs text-muted">Category / rule</dt><dd className="font-mono text-xs">{d.ruleId}</dd></div>
-              <div><dt className="text-xs text-muted">Affected entity</dt><dd className="font-medium">{entityName(d.entityType, d.entityId)} <span className="text-xs capitalize text-muted">({d.entityType})</span></dd></div>
+              <div><dt className="text-xs text-muted">Affected entity</dt><dd className="font-medium">{d.entityName ?? `${humanize(d.entityType)} ${shortId(d.entityId)}`} <span className="text-xs capitalize text-muted">({d.entityType})</span></dd></div>
               <div><dt className="text-xs text-muted">Detected</dt><dd>{formatDateTime(d.detectedAt)}</dd></div>
               <div><dt className="text-xs text-muted">Source</dt><dd>{d.source}</dd></div>
-              {d.resolvedAt && <div className="col-span-2"><dt className="text-xs text-muted">{humanize(d.status)} {formatDateTime(d.resolvedAt)} by {dir.userName(d.resolvedBy)}</dt>{d.resolutionNote && <dd className="mt-0.5">{d.resolutionNote}</dd>}</div>}
+              {d.resolvedAt && <div className="col-span-2"><dt className="text-xs text-muted">{humanize(d.status)} {formatDateTime(d.resolvedAt)} by {d.resolvedByName ?? 'Unknown'}</dt>{d.resolutionNote && <dd className="mt-0.5">{d.resolutionNote}</dd>}</div>}
             </dl>
             <div>
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Evidence</p>

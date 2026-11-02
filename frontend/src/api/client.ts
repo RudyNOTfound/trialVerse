@@ -78,8 +78,9 @@ export async function patch<T>(url: string, body: unknown): Promise<T> {
   return res.data.data;
 }
 
-export async function del(url: string): Promise<void> {
-  await http.delete(url);
+export async function del<T = void>(url: string): Promise<T> {
+  const res = await http.delete<{ success: true; data: T }>(url);
+  return res.data?.data;
 }
 
 /** Drops undefined / empty-string params so filters can be passed straight from UI state. */

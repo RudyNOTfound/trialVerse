@@ -13,16 +13,13 @@ import { DataTable } from '@/components/tables/DataTable';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Select } from '@/components/ui/input';
-import { useDirectory, type Directory } from '@/hooks/useDirectory';
+import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate, formatDateTime, formatMoney, humanize, shortId } from '@/utils/format';
 import type { RiskAssessment, RiskEntityType, RiskLevel } from '@/types/api';
 
-function entityLabel(a: Pick<RiskAssessment, 'entityType' | 'entityId'>, dir: Directory) {
-  return a.entityType === 'patient' ? dir.patientName(a.entityId) : `${humanize(a.entityType)} ${shortId(a.entityId)}`;
-}
+const entityLabel = (a: Pick<RiskAssessment, 'entityType' | 'entityId' | 'entityName'>) => a.entityName ?? `${humanize(a.entityType)} ${shortId(a.entityId)}`;
 
 export default function RiskPage() {
-  const dir = useDirectory();
   const [level, setLevel] = useState('');
   const [entityType, setEntityType] = useState('');
   const [page, setPage] = useState(1);
@@ -39,27 +36,27 @@ export default function RiskPage() {
         <FilterSelect value={level} onChange={(v) => { setLevel(v); setPage(1); }} options={['low', 'medium', 'high', 'critical']} allLabel="All levels" label="Filter by level" />
         <FilterSelect value={entityType} onChange={(v) => { setEntityType(v); setPage(1); }} options={['patient', 'visit', 'reimbursement']} allLabel="All entity types" label="Filter by entity type" />
       </FilterBar>
-      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading || dir.loading} error={error} onRetry={() => refetch()} rowKey={(a) => a.id} onRowClick={(a) => setSelected(a.id)}
+      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading} error={error} onRetry={() => refetch()} rowKey={(a) => a.id} onRowClick={(a) => setSelected(a.id)}
         emptyTitle="No risk assessments" emptyDescription="Run an assessment for a patient, visit or reimbursement."
         columns={[
-          { header: 'Entity', cell: (a) => <div><p className="font-medium">{entityLabel(a, dir)}</p><p className="text-xs capitalize text-muted">{a.entityType}</p></div> },
+          { header: 'Entity', cell: (a) => <div><p className="font-medium">{entityLabel(a)}</p><p className="text-xs capitalize text-muted">{a.entityType}</p></div> },
           { header: 'Score', cell: (a) => <ScoreBar score={a.score} level={a.level} /> },
           { header: 'Level', cell: (a) => <StatusBadge value={a.level} /> },
           { header: 'Triggered rules', cell: (a) => a.triggeredRules.length, hideOnMobile: true },
           { header: 'Assessed', cell: (a) => formatDateTime(a.assessedAt), hideOnMobile: true },
         ]} />
       <RunDialog open={running} onOpenChange={setRunning} onDone={(id) => setSelected(id)} />
-      <DetailDialog id={selected} onClose={() => setSelected(null)} dir={dir} />
+      <DetailDialog id={selected} onClose={() => setSelected(null)} />
     </>
   );
 }
 
-function DetailDialog({ id, onClose, dir }: { id: string | null; onClose: () => void; dir: Directory }) {
+function DetailDialog({ id, onClose }: { id: string | null; onClose: () => void }) {
   const a = useQuery({ queryKey: ['risk-assessment', id], queryFn: () => riskApi.get(id!), enabled: !!id });
   const d = a.data;
   return (
     <Dialog open={!!id} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent title="Risk assessment" description={d ? `${entityLabel(d, dir)} · ${humanize(d.entityType)}` : undefined} className="max-w-xl">
+      <DialogContent title="Risk assessment" description={d ? `${entityLabel(d)} · ${humanize(d.entityType)}` : undefined} className="max-w-xl">
         {a.isLoading ? <Skeleton className="h-48" /> : a.error || !d ? <ErrorState error={a.error} onRetry={() => a.refetch()} /> : (
           <div className="space-y-5">
             <div className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
@@ -97,8 +94,8 @@ function RunDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChange
     onError: setError,
   });
   const options = type === 'patient' ? dir.patients.map((p) => ({ id: p.id, label: `${p.subjectCode} · ${p.firstName} ${p.lastName}` }))
-    : type === 'visit' ? (visits.data?.items ?? []).map((v) => ({ id: v.id, label: `${dir.patientName(v.patientId)} · ${v.visitType} · ${formatDate(v.scheduledAt)}` }))
-    : (reimbs.data?.items ?? []).map((r) => ({ id: r.id, label: `${dir.patientName(r.patientId)} · ${r.category} · ${formatMoney(r.amountCents, r.currency)}` }));
+    : type === 'visit' ? (visits.data?.items ?? []).map((v) => ({ id: v.id, label: `${v.patientName ?? '—'} · ${v.visitType} · ${formatDate(v.scheduledAt)}` }))
+    : (reimbs.data?.items ?? []).map((r) => ({ id: r.id, label: `${r.patientName ?? '—'} · ${r.category} · ${formatMoney(r.amountCents, r.currency)}` }));
   return (
     <Dialog open={open} onOpenChange={(o) => { if (o) setError(null); onOpenChange(o); }}>
       <DialogContent title="Run risk assessment" description="Evaluates the current data with the active rule engine and stores the result.">

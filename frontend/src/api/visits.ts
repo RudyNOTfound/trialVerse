@@ -1,5 +1,5 @@
 import { get, getPage, patch, post } from './client';
-import type { DemoOtp, OtpIssueResult, OtpStatus, Visit, VisitStatus } from '@/types/api';
+import type { DemoOtp, OtpIssueResult, OtpStatus, Visit, VisitHistoryEntry, VisitStatus } from '@/types/api';
 
 export interface VisitFilters { page?: number; pageSize?: number; patientId?: string; trialId?: string; trialSiteId?: string; enrollmentId?: string; status?: VisitStatus; from?: string; to?: string; sort?: 'scheduledAt' | 'createdAt'; order?: 'asc' | 'desc' }
 
@@ -10,6 +10,8 @@ export const visitsApi = {
   update: (id: string, b: { visitType?: string; scheduledAt?: string; notes?: string }) => patch<Visit>(`/visits/${id}`, b),
   /** `completed` requires a verified visit and an investigator/admin; the backend enforces both. */
   setStatus: (id: string, status: 'completed' | 'missed' | 'cancelled', note?: string) => post<Visit>(`/visits/${id}/status`, { status, note }),
+  /** Staff only. Status changes, edits and OTP events for one visit, oldest first. */
+  history: (id: string) => get<VisitHistoryEntry[]>(`/visits/${id}/history`),
   issueOtp: (id: string) => post<OtpIssueResult>(`/visits/${id}/otp`),
   otpStatus: (id: string) => get<OtpStatus>(`/visits/${id}/otp`),
   verifyOtp: (id: string, code: string) => post<Visit>(`/visits/${id}/otp/verify`, { code }),

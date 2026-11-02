@@ -8,7 +8,6 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDateTime, formatMoney, humanize } from '@/utils/format';
 import { ReimbursementFormDialog } from './ReimbursementFormDialog';
 
@@ -16,7 +15,6 @@ import { ReimbursementFormDialog } from './ReimbursementFormDialog';
 export function ReimbursementDetailDialog({ id, onClose }: { id: string | null; onClose: () => void }) {
   const qc = useQueryClient();
   const { user, hasRole } = useAuth();
-  const dir = useDirectory();
   const toast = useToast();
   const [error, setError] = useState<unknown>(null);
   const [mode, setMode] = useState<'reject' | 'paid' | null>(null);
@@ -43,7 +41,7 @@ export function ReimbursementDetailDialog({ id, onClose }: { id: string | null; 
   return (
     <>
       <Dialog open={!!id && !editing} onOpenChange={(o) => { if (!o) { setMode(null); setError(null); onClose(); } }}>
-        <DialogContent title="Reimbursement" description={d ? `${dir.patientName(d.patientId)} · ${dir.trialCode(d.trialId)}` : undefined} className="max-w-xl">
+        <DialogContent title="Reimbursement" description={d ? `${d.patientName ?? '—'} · ${d.trialCode ?? '—'}` : undefined} className="max-w-xl">
           {r.isLoading ? <Skeleton className="h-48" /> : r.error || !d ? <ErrorState error={r.error} onRetry={() => r.refetch()} /> : (
             <div className="space-y-5">
               <div className="flex items-end justify-between">
@@ -52,7 +50,7 @@ export function ReimbursementDetailDialog({ id, onClose }: { id: string | null; 
               </div>
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <Item k="Category" v={<span className="capitalize">{d.category}</span>} /><Item k="Submitted" v={formatDateTime(d.createdAt)} />
-                <Item k="Requested by" v={dir.userName(d.requestedBy)} /><Item k="Reviewed by" v={d.reviewedBy ? `${dir.userName(d.reviewedBy)} · ${formatDateTime(d.reviewedAt)}` : '—'} />
+                <Item k="Requested by" v={d.requestedByName ?? 'Unknown'} /><Item k="Reviewed by" v={d.reviewedBy ? `${d.reviewedByName ?? 'Unknown'} · ${formatDateTime(d.reviewedAt)}` : '—'} />
                 {d.description && <div className="col-span-2"><Item k="Description" v={d.description} /></div>}
                 {d.rejectionReason && <div className="col-span-2"><Item k="Rejection reason" v={<span className="text-red-700">{d.rejectionReason}</span>} /></div>}
                 {d.transactionRef && <Item k="Transaction ref" v={<span className="font-mono text-xs">{d.transactionRef}</span>} />}
@@ -98,7 +96,7 @@ export function ReimbursementDetailDialog({ id, onClose }: { id: string | null; 
                     {(history.data ?? []).map((h) => (
                       <li key={h.id} className="relative text-sm"><span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-brand-500" />
                         <span className="font-medium">{humanize(h.field)}:</span> {h.fromStatus ? `${humanize(h.fromStatus)} → ` : ''}{humanize(h.toStatus)}
-                        <span className="block text-xs text-muted">{formatDateTime(h.createdAt)} · {dir.userName(h.actorId)}{h.note ? ` · ${h.note}` : ''}</span></li>
+                        <span className="block text-xs text-muted">{formatDateTime(h.createdAt)} · {h.actorName ?? 'System'}{h.note ? ` · ${h.note}` : ''}</span></li>
                     ))}
                   </ol>
                 )}

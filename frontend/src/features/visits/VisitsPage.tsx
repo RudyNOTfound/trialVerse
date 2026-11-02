@@ -40,13 +40,13 @@ export default function VisitsPage() {
         <FilterSelect value={patientId} onChange={(v) => { setPatientId(v); setPage(1); }} options={dir.patients.map((p) => ({ value: p.id, label: `${p.subjectCode} · ${p.firstName} ${p.lastName}` }))} allLabel="All patients" label="Filter by patient" />
         <FilterSelect value={status} onChange={(v) => { setStatus(v); setPage(1); }} options={['scheduled', 'otp_pending', 'verified', 'completed', 'missed', 'cancelled']} allLabel="All statuses" label="Filter by status" />
       </FilterBar>
-      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading || dir.loading} error={error} onRetry={() => refetch()} rowKey={(v) => v.id} onRowClick={(v) => nav(`/app/visits/${v.id}`)}
+      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading} error={error} onRetry={() => refetch()} rowKey={(v) => v.id} onRowClick={(v) => nav(`/app/visits/${v.id}`)}
         emptyTitle="No visits found" emptyDescription="Schedule a visit for an enrolled patient."
         columns={[
-          { header: 'Patient', cell: (v) => <span className="font-medium">{dir.patientName(v.patientId)}</span> },
+          { header: 'Patient', cell: (v) => <span className="font-medium">{v.patientName ?? '—'}</span> },
           { header: 'Visit', cell: (v) => v.visitType },
-          { header: 'Trial', cell: (v) => dir.trialCode(v.trialId), hideOnMobile: true },
-          { header: 'Site', cell: (v) => dir.siteName(v.trialSiteId), hideOnMobile: true },
+          { header: 'Trial', cell: (v) => v.trialCode ?? '—', hideOnMobile: true },
+          { header: 'Site', cell: (v) => v.siteName ?? '—', hideOnMobile: true },
           { header: 'Scheduled', cell: (v) => formatDateTime(v.scheduledAt) },
           { header: 'Status', cell: (v) => <StatusBadge value={v.status} /> },
         ]} />
@@ -60,7 +60,6 @@ type Values = z.infer<typeof schema>;
 
 function ScheduleVisitDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; onCreated: (id: string) => void }) {
   const qc = useQueryClient();
-  const dir = useDirectory();
   const [error, setError] = useState<unknown>(null);
   const enrollments = useQuery({ queryKey: ['enrollments', 'schedulable'], enabled: open, queryFn: () => fetchAll((page) => enrollmentsApi.list({ page, pageSize: 100 })) });
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { enrollmentId: '', visitType: '', scheduledAt: '', notes: '' } });
@@ -77,7 +76,7 @@ function ScheduleVisitDialog({ open, onOpenChange, onCreated }: { open: boolean;
         <form onSubmit={handleSubmit((v) => m.mutate(v))} className="space-y-4" noValidate>
           <Field label="Patient enrollment" error={errors.enrollmentId?.message} hint={!enrollments.isLoading && !usable.length ? 'No active enrollments. Enrol a patient first.' : undefined}>
             <Select {...register('enrollmentId')}><option value="">Select enrollment…</option>
-              {usable.map((e) => <option key={e.id} value={e.id}>{dir.patientName(e.patientId)} · {dir.trialCode(e.trialId)} ({e.status})</option>)}</Select>
+              {usable.map((e) => <option key={e.id} value={e.id}>{e.patientName ?? '—'} · {e.trialCode ?? '—'} ({e.status})</option>)}</Select>
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Visit type" error={errors.visitType?.message}><Input placeholder="Week 4" {...register('visitType')} /></Field>

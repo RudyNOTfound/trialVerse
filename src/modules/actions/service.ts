@@ -5,6 +5,7 @@ import { AppError } from '../../utils/errors';
 import { changedKeys, inTransaction, mapRow, mapRows, nowIso, orderBy, updateRow } from '../../utils/db';
 import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
 import { appendAuditEvent } from '../audit/chain';
+import { createLookups } from '../../utils/lookups';
 import { listStatusHistory, recordStatus } from '../shared/history';
 import type { createActionBody, listActionsQuery, updateActionBody } from './schemas';
 
@@ -18,6 +19,8 @@ export interface ActionDto {
   isOverdue: boolean;
   /** `overdue` when isOverdue, otherwise the stored status. */
   effectiveStatus: ActionStatus | 'overdue';
+  /** Embedded display names (additive, read-only). */
+  assigneeName?: string | null; createdByName?: string | null; patientName?: string | null;
 }
 
 export const ACTION_TRANSITIONS: TransitionMap<ActionStatus> = {
@@ -37,11 +40,23 @@ function decorate(a: Omit<ActionDto, 'isOverdue' | 'effectiveStatus'>, now = now
 
 export function createActionService(ctx: Ctx) {
   const { db } = ctx;
+  const lookups = createLookups(db);
+
+  const withNames = (items: ActionDto[]): ActionDto[] => {
+    const u = lookups.users(items.flatMap((a) => [a.assigneeId, a.createdBy]));
+    const p = lookups.patients(items.map((a) => a.patientId));
+    return items.map((a) => ({
+      ...a,
+      assigneeName: a.assigneeId ? u.get(a.assigneeId)?.name ?? null : null,
+      createdByName: u.get(a.createdBy)?.name ?? null,
+      patientName: a.patientId ? p.get(a.patientId)?.name ?? null : null,
+    }));
+  };
 
   const get = (id: string): ActionDto => {
     const a = mapRow<Omit<ActionDto, 'isOverdue' | 'effectiveStatus'>>(db.prepare(`SELECT ${COLS} FROM actions WHERE id = ?`).get(id) as any);
     if (!a) throw AppError.notFound('Action');
-    return decorate(a);
+    return withNames([decorate(a)])[0]!;
   };
 
   function assertRefs(i: { assigneeId?: string | null; trialId?: string; patientId?: string; visitId?: string }) {
@@ -93,7 +108,7 @@ export function createActionService(ctx: Ctx) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM actions ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { createdAt: 'created_at', dueDate: 'due_date', priority: PRIORITY_RANK }, 'created_at');
       const rows = db.prepare(`SELECT ${COLS} FROM actions ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<Omit<ActionDto, 'isOverdue' | 'effectiveStatus'>>(rows).map((a) => decorate(a, now)), total };
+      return { items: withNames(mapRows<Omit<ActionDto, 'isOverdue' | 'effectiveStatus'>>(rows).map((a) => decorate(a, now))), total };
     },
 
     update(id: string, patch: z.infer<typeof updateActionBody>, actor: Actor): ActionDto {

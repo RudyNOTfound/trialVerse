@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus } from 'lucide-react';
-import { enrollmentsApi } from '@/api/trials';
+import { enrollmentsApi, trialsApi } from '@/api/trials';
 import { PageHeader } from '@/components/common/PageHeader';
 import { FilterBar, FilterSelect } from '@/components/common/FilterBar';
 import { InlineError } from '@/components/common/States';
@@ -50,12 +50,12 @@ export default function EnrollmentsPage() {
         <FilterSelect value={status} onChange={(v) => { setStatus(v); setPage(1); }} options={['screening', 'enrolled', 'completed', 'withdrawn', 'screen_failed']} allLabel="All statuses" label="Filter by status" />
       </FilterBar>
       <div className="mb-3"><InlineError error={rowError} /></div>
-      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading || dir.loading} error={error} onRetry={() => refetch()} rowKey={(e) => e.id}
+      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading} error={error} onRetry={() => refetch()} rowKey={(e) => e.id}
         emptyTitle="No enrollments found"
         columns={[
-          { header: 'Patient', cell: (e) => <button className="font-medium text-brand-700 hover:underline" onClick={() => nav(`/app/patients/${e.patientId}`)}>{dir.patientName(e.patientId)}</button> },
-          { header: 'Trial', cell: (e) => <button className="hover:underline" onClick={() => nav(`/app/trials/${e.trialId}`)}>{dir.trialCode(e.trialId)}</button> },
-          { header: 'Site', cell: (e) => dir.siteName(e.trialSiteId), hideOnMobile: true },
+          { header: 'Patient', cell: (e) => <button className="font-medium text-brand-700 hover:underline" onClick={() => nav(`/app/patients/${e.patientId}`)}>{e.patientName ?? '—'}</button> },
+          { header: 'Trial', cell: (e) => <button className="hover:underline" onClick={() => nav(`/app/trials/${e.trialId}`)}>{e.trialCode ?? '—'}</button> },
+          { header: 'Site', cell: (e) => e.siteName ?? '—', hideOnMobile: true },
           { header: 'Arm', cell: (e) => e.arm ?? '—', hideOnMobile: true },
           { header: 'Enrolled', cell: (e) => formatDate(e.enrolledAt), hideOnMobile: true },
           { header: 'Status', cell: (e) => <StatusBadge value={e.status} /> },
@@ -87,7 +87,8 @@ function EnrollDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o:
   const [error, setError] = useState<unknown>(null);
   const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { patientId: '', trialId: '', trialSiteId: '', arm: '' } });
   const trialId = watch('trialId');
-  const sites = dir.sites.filter((s) => s.trialId === trialId && s.status === 'active');
+  const siteQ = useQuery({ queryKey: ['trial-sites', trialId], queryFn: () => trialsApi.sites(trialId), enabled: open && !!trialId });
+  const sites = (siteQ.data ?? []).filter((s) => s.status === 'active');
   const m = useMutation({
     mutationFn: (v: Values) => enrollmentsApi.create({ ...v, arm: v.arm || undefined }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['enrollments'] }); qc.invalidateQueries({ queryKey: ['overview'] }); reset(); onOpenChange(false); },

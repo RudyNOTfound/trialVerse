@@ -11,7 +11,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDirectory } from '@/hooks/useDirectory';
-import { useStaffUsers } from '@/hooks/useStaffUsers';
+import { useStaffDirectory } from '@/hooks/useStaffDirectory';
 import { humanize } from '@/utils/format';
 import type { ActionItem, Priority } from '@/types/api';
 
@@ -33,7 +33,7 @@ export function ActionFormDialog({ open, onOpenChange, action }: { open: boolean
   const toast = useToast();
   const { user } = useAuth();
   const dir = useDirectory();
-  const staff = useStaffUsers(open);
+  const staff = useStaffDirectory({ enabled: open });
   const [error, setError] = useState<unknown>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { title: '', description: '', priority: 'medium', dueDate: '', patientId: '', assigneeId: '' } });
   useEffect(() => {
@@ -77,12 +77,12 @@ export function ActionFormDialog({ open, onOpenChange, action }: { open: boolean
             <Field label="Priority" error={errors.priority?.message}><Select {...register('priority')}>{PRIORITIES.map((p) => <option key={p} value={p}>{humanize(p)}</option>)}</Select></Field>
             <Field label="Due date (optional)" error={errors.dueDate?.message}><Input type="date" {...register('dueDate')} /></Field>
           </div>
-          <Field label="Assignee" hint={staff.isAdmin ? undefined : 'Only administrators can assign to other staff.'}>
-            <Select {...register('assigneeId')} disabled={staff.isAdmin && staff.isLoading}>
+          <Field label="Assignee">
+            <Select {...register('assigneeId')} disabled={staff.isLoading}>
               <option value="">Unassigned</option>
               {user && <option value={user.id}>Me ({user.fullName})</option>}
               {staffList.filter((u) => u.id !== user?.id).map((u) => <option key={u.id} value={u.id}>{u.fullName} · {u.role}</option>)}
-              {action?.assigneeId && action.assigneeId !== user?.id && !staffList.some((u) => u.id === action.assigneeId) && <option value={action.assigneeId}>{dir.userName(action.assigneeId)}</option>}
+              {action?.assigneeId && action.assigneeId !== user?.id && !staffList.some((u) => u.id === action.assigneeId) && <option value={action.assigneeId}>{action.assigneeName ?? 'Current assignee'} (inactive)</option>}
             </Select>
           </Field>
           {!action && (

@@ -36,7 +36,7 @@ export default function ParticipantHome() {
           <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-blue-200"><CalendarClock className="h-4 w-4" />{next?.status === 'otp_pending' ? 'Action needed' : 'Next visit'}</p>
           {visits.isLoading ? <Skeleton className="mt-3 h-12 bg-white/20" /> : next ? (
             <>
-              <p className="mt-2 text-xl font-semibold">{next.visitType}</p>
+              <p className="mt-2 text-xl font-semibold">{next.visitType}</p>{next.siteName && <p className="text-sm text-blue-200">{next.siteName}</p>}
               <p className="text-sm text-blue-100">{formatDateTime(next.scheduledAt)} · {relativeTime(next.scheduledAt)}{next.status === 'verified' ? ' · verified, awaiting completion' : ''}</p>
               <Link to={`/me/visits/${next.id}`} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-navy-900">
                 {next.status === 'otp_pending' ? <><KeyRound className="h-4 w-4" />Enter your code</> : 'View visit'}<ChevronRight className="h-4 w-4" />
@@ -57,7 +57,7 @@ export default function ParticipantHome() {
           <Card className="p-4 text-sm text-muted">You are not currently enrolled in a trial.</Card>
         ) : enrolled.map((e) => (
           <Card key={e.id} className="mb-2 flex items-center justify-between p-4">
-            <div><p className="text-sm font-medium">{e.arm ? `Study arm: ${e.arm}` : 'Clinical trial participation'}</p><p className="text-xs text-muted">{e.enrolledAt ? `Enrolled ${formatDateTime(e.enrolledAt)}` : 'Screening in progress'}</p></div>
+            <div><p className="text-sm font-medium">{e.trialTitle ?? (e.arm ? `Study arm: ${e.arm}` : 'Clinical trial participation')}</p><p className="text-xs text-slate-500">{[e.trialCode, e.siteName, e.arm ? `Arm ${e.arm}` : null].filter(Boolean).join(' · ')}</p><p className="text-xs text-muted">{e.enrolledAt ? `Enrolled ${formatDateTime(e.enrolledAt)}` : 'Screening in progress'}</p></div>
             <StatusBadge value={e.status} />
           </Card>
         ))}

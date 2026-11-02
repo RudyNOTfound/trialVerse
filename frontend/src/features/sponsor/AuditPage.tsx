@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useDirectory } from '@/hooks/useDirectory';
 import { useDebounce } from '@/hooks/useDebounce';
 import { cn } from '@/lib/utils';
 import { formatDateTime, humanize, shortId } from '@/utils/format';
@@ -20,7 +19,6 @@ const hashShort = (h: string) => `${h.slice(0, 8)}…${h.slice(-6)}`;
 
 export default function AuditPage() {
   const qc = useQueryClient();
-  const dir = useDirectory();
   const [action, setAction] = useState('');
   const [entityType, setEntityType] = useState('');
   const [from, setFrom] = useState('');
@@ -85,7 +83,7 @@ export default function AuditPage() {
           { header: '#', cell: (e) => <span className="font-mono text-xs text-slate-500">{e.seq}</span> },
           { header: 'When', cell: (e) => <span className="whitespace-nowrap">{formatDateTime(e.createdAt)}</span> },
           { header: 'Action', cell: (e) => <span className="font-mono text-xs font-medium">{e.action}</span> },
-          { header: 'Actor', cell: (e) => dir.userName(e.actorId), hideOnMobile: true },
+          { header: 'Actor', cell: (e) => e.actorName ?? 'System', hideOnMobile: true },
           { header: 'Entity', cell: (e) => <span className="text-slate-600">{humanize(e.entityType)} <span className="font-mono text-xs text-muted">{shortId(e.entityId)}</span></span>, hideOnMobile: true },
           { header: 'Hash', cell: (e) => <span className="font-mono text-xs text-slate-500">{hashShort(e.hash)}</span>, hideOnMobile: true },
         ]} />
@@ -96,7 +94,7 @@ export default function AuditPage() {
             <div className="space-y-4 text-sm">
               <dl className="grid grid-cols-2 gap-3">
                 <div><dt className="text-xs text-muted">Timestamp</dt><dd>{formatDateTime(selected.createdAt)}</dd></div>
-                <div><dt className="text-xs text-muted">Actor</dt><dd>{dir.userName(selected.actorId)}</dd></div>
+                <div><dt className="text-xs text-muted">Actor</dt><dd>{selected.actorName ?? 'System'}</dd></div>
                 <div><dt className="text-xs text-muted">Entity</dt><dd>{humanize(selected.entityType)}</dd></div>
                 <div><dt className="text-xs text-muted">Entity id</dt><dd className="break-all font-mono text-xs">{selected.entityId}</dd></div>
               </dl>

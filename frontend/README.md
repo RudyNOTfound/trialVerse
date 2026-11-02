@@ -47,7 +47,7 @@ src/utils/        format, roles, transitions (UI hints mirroring backend state m
 | Patients | `GET/POST /patients`, `GET/PATCH/DELETE /patients/:id` (PATCH also links/unlinks `userId`), `GET /patients/me` |
 | Trials & sites | `GET/POST /trials`, `GET/PATCH/DELETE /trials/:id`, `GET/POST /trials/:id/sites`, `GET/PATCH /trials/:id/sites/:siteId` |
 | Enrollments | `GET/POST /enrollments`, `PATCH /enrollments/:id` |
-| Visits | `GET/POST /visits`, `GET/PATCH /visits/:id`, `POST /visits/:id/status` (history comes from `GET /audit?entityType=visit&entityId=`) |
+| Visits | `GET/POST /visits`, `GET/PATCH /visits/:id`, `POST /visits/:id/status` |
 | OTP | `POST/GET /visits/:id/otp`, `POST /visits/:id/otp/verify`, `GET /dev/visits/:id/otp` (dev only) |
 | Reimbursements | list/create/get/`PATCH`, `/history`, `/approve`, `/reject`, `/cancel`, `/payment` |
 | Actions | list/create/get, `PATCH /actions/:id`, `POST /actions/:id/status`, `/history` |
@@ -55,6 +55,10 @@ src/utils/        format, roles, transitions (UI hints mirroring backend state m
 | Integrity | `GET /integrity/alerts(/:id)`, `PATCH /integrity/alerts/:id`, `POST /integrity/scans` |
 | Audit | `GET /audit`, `GET /audit/verify` |
 | Users (admin only) | `GET/POST /users`, `GET/PATCH /users/:id` |
+| Staff directory (all staff) | `GET /users/directory` (id, fullName, role only) |
+| Account linking (admin + coordinator) | `GET /patients/linkable-accounts`, `POST/DELETE /patients/:id/account` |
+| Stats (aggregates) | `GET /stats/operations`, `/stats/visits`, `/stats/reimbursements` (staff), `/stats/sponsor` (admin + investigator) |
+| Visit history (staff) | `GET /visits/:id/history` |
 | Registration | `POST /auth/register` (name, email, password only) |
 | Rules (read-only) | `GET /risk/rules`, `GET /integrity/rules` |
 
@@ -73,19 +77,24 @@ Verification and completion are separate operations. Handled outcomes: incorrect
 - **Rules screens are read-only** because the API exposes no way to change rules (server config only).
 - **Visit history** is the audit trail for that visit, so it is visible to admin/investigator only.
 
+## Phase 3: backend integration
+
+- **Names come from the API.** Visits, enrollments, reimbursements, actions, alerts, risk assessments, sites, audit events and status history embed `patientName`, `trialCode`, `siteName`, `actorName`, ... so list screens no longer resolve ids client-side. Participants now see trial/site names for their own records.
+- **Dashboards use `/stats/*`.** The operations overview makes 2 data requests (was 8) and the sponsor overview 2 (was ~13).
+- **Staff pickers** (principal investigator, action assignee, assignee filter) use `/users/directory`, so coordinators and investigators can use them. Only admins can use `/users`.
+- **Account linking** (admin + coordinator): the patient Edit dialog lists only unlinked registrations (`/patients/linkable-accounts`) and links/unlinks through the dedicated endpoints; staff see a notice on the Patients page when registrations are waiting.
+- **Visit history** uses `GET /visits/:id/history` and is visible to all staff.
+- Risk figures on the sponsor overview now use each entity's **latest** assessment (previously every stored assessment was counted).
+
 ## Known backend limitations / requests (not worked around with fake data)
 
 1. **Participants cannot retrieve their own OTP.** `GET /dev/visits/:id/otp` is staff-only and `issue` returns `demoOtp` only to staff. In the demo, staff reads the code from the *Development only* panel and gives it to the participant. Real fix: OTP delivery (SMS/email), already listed as Phase 1.
-2. **No names in patient responses.** Participants cannot call `/trials` or sites, so their enrollment/visit screens cannot show trial title or site. Request: include `trialCode`, `trialTitle`, `siteName` in `/enrollments` and `/visits` responses (or a `GET /patients/me/summary`).
-3. **Non-admins cannot resolve user names.** `/users` is admin-only, so actors, assignees and reviewers show a short id (or "System") for coordinator/investigator. Request: a minimal `GET /users/directory` (id, fullName, role) for staff, or embed `actorName` in audit/history rows.
-4. **No aggregate/stat endpoints.** Dashboard numbers use `meta.total` from filtered list calls (several small requests). Request: `GET /stats/overview`, `GET /risk/summary`, `GET /integrity/summary`.
-5. **Directory lookups load whole lists** (pageSize cap 100, paged client-side). Fine at demo scale; needs server-side joins or search endpoints at scale.
-6. **Assignee / principal-investigator / portal-account pickers are admin-only** because they need the admin-only user list (3). Request: a staff-readable `GET /users/directory?role=` (id, fullName, role).
-7. **Latest risk per entity** is not exposed; the risk page lists assessment history sorted by score.
-8. **No visit-history endpoint**; the audit log is used (admin/investigator only). Request: `GET /visits/:id/history` readable by coordinators.
-9. **Registered participants are invisible to coordinators** until an admin links them (patient link needs the user list). Request: expose unlinked patient accounts to coordinators, or let `POST /patients` accept the registrant's email to auto-link.
-10. **Users cannot be deleted**, and email/password cannot be changed by admins (no password reset or change endpoint).
-11. No ECG / symptom / reminder / ML endpoints exist, so no such screens were built.
+2. **Patient and trial pickers load whole lists** (pageSize cap 100, paged client-side). Fine at demo scale; needs server-side search/typeahead at scale.
+3. **The risk page lists assessment history** sorted by score; there is no "latest per entity" list endpoint (the overview stats do use latest-per-entity).
+4. **Users cannot be deleted**, and email/password cannot be changed by admins (no password reset or change endpoint).
+5. **Deleting a patient keeps its portal link**, so that account cannot be linked to another record (the `user_id` stays on the soft-deleted row). Request: clear the link on delete, or allow re-linking.
+6. **Registrations show email to coordinators** (needed to match a person); there is no richer matching (e.g. by date of birth).
+7. No ECG / symptom / reminder / ML endpoints exist, so no such screens were built.
 
 ## Remaining for Person B / shared integration
 

@@ -8,7 +8,6 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { DataTable } from '@/components/tables/DataTable';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate, formatMoney } from '@/utils/format';
 import type { PaymentStatus, ReimbursementCategory, ReimbursementStatus } from '@/types/api';
 import { ReimbursementDetailDialog } from './ReimbursementDetailDialog';
@@ -16,7 +15,6 @@ import { ReimbursementFormDialog } from './ReimbursementFormDialog';
 
 export default function ReimbursementsPage() {
   const { hasRole } = useAuth();
-  const dir = useDirectory();
   const [status, setStatus] = useState('');
   const [payment, setPayment] = useState('');
   const [category, setCategory] = useState('');
@@ -36,13 +34,13 @@ export default function ReimbursementsPage() {
         <FilterSelect value={payment} onChange={reset(setPayment)} options={['none', 'unpaid', 'processing', 'paid', 'failed']} allLabel="All payment states" label="Filter by payment status" />
         <FilterSelect value={category} onChange={reset(setCategory)} options={['travel', 'meals', 'accommodation', 'parking', 'other']} allLabel="All categories" label="Filter by category" />
       </FilterBar>
-      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading || dir.loading} error={error} onRetry={() => refetch()} rowKey={(r) => r.id} onRowClick={(r) => setSelected(r.id)}
+      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading} error={error} onRetry={() => refetch()} rowKey={(r) => r.id} onRowClick={(r) => setSelected(r.id)}
         emptyTitle="No reimbursements found"
         columns={[
-          { header: 'Patient', cell: (r) => <span className="font-medium">{dir.patientName(r.patientId)}</span> },
+          { header: 'Patient', cell: (r) => <span className="font-medium">{r.patientName ?? '—'}</span> },
           { header: 'Category', cell: (r) => <span className="capitalize">{r.category}</span> },
           { header: 'Amount', cell: (r) => <span className="font-medium tabular-nums">{formatMoney(r.amountCents, r.currency)}</span> },
-          { header: 'Trial', cell: (r) => dir.trialCode(r.trialId), hideOnMobile: true },
+          { header: 'Trial', cell: (r) => r.trialCode ?? '—', hideOnMobile: true },
           { header: 'Submitted', cell: (r) => formatDate(r.createdAt), hideOnMobile: true },
           { header: 'Status', cell: (r) => <StatusBadge value={r.status} /> },
           { header: 'Payment', cell: (r) => <StatusBadge value={r.paymentStatus} />, hideOnMobile: true },

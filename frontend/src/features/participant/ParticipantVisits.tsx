@@ -37,7 +37,7 @@ function Section({ title, visits }: { title: string; visits: Visit[] }) {
         {visits.map((v) => (
           <Link key={v.id} to={`/me/visits/${v.id}`}>
             <Card className="mb-2 flex items-center justify-between gap-3 p-4 transition-shadow hover:shadow-md">
-              <div className="min-w-0"><p className="truncate text-sm font-medium">{v.visitType}</p><p className="text-xs text-muted">{formatDateTime(v.scheduledAt)}</p></div>
+              <div className="min-w-0"><p className="truncate text-sm font-medium">{v.visitType}</p><p className="text-xs text-muted">{formatDateTime(v.scheduledAt)}</p>{(v.trialCode || v.siteName) && <p className="truncate text-xs text-slate-500">{[v.trialCode, v.siteName].filter(Boolean).join(' · ')}</p>}</div>
               <div className="flex items-center gap-2"><StatusBadge value={v.status} /><ChevronRight className="h-4 w-4 text-slate-400" /></div>
             </Card>
           </Link>
@@ -56,7 +56,7 @@ export function ParticipantVisitDetail() {
   return (
     <div className="space-y-5">
       <Link to="/me/visits" className="inline-flex items-center gap-1 text-sm text-muted"><ArrowLeft className="h-4 w-4" />Visits</Link>
-      <div className="flex items-start justify-between gap-3"><div><h1 className="text-xl font-semibold">{v.visitType}</h1><p className="text-sm text-muted">{formatDateTime(v.scheduledAt)}</p></div><StatusBadge value={v.status} /></div>
+      <div className="flex items-start justify-between gap-3"><div><h1 className="text-xl font-semibold">{v.visitType}</h1><p className="text-sm text-muted">{formatDateTime(v.scheduledAt)}</p>{(v.trialTitle || v.siteName) && <p className="mt-0.5 text-xs text-slate-500">{[v.trialTitle, v.siteName].filter(Boolean).join(' · ')}</p>}</div><StatusBadge value={v.status} /></div>
       <Card><CardContent className="py-5"><VisitStepper visit={v} /></CardContent></Card>
       <OtpPanel visit={v} mode="participant" />
       {v.notes && <Card className="p-4 text-sm"><p className="mb-1 text-xs text-muted">Notes</p>{v.notes}</Card>}

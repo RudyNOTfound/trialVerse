@@ -13,7 +13,6 @@ import { DataTable } from '@/components/tables/DataTable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate, formatDateTime, formatMoney } from '@/utils/format';
 import { DeletePatientDialog } from './DeletePatientDialog';
 import { PatientFormDialog } from './PatientFormDialog';
@@ -22,7 +21,6 @@ export default function PatientDetailPage() {
   const { id = '' } = useParams();
   const nav = useNavigate();
   const { hasRole } = useAuth();
-  const dir = useDirectory();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const patient = useQuery({ queryKey: ['patient', id], queryFn: () => patientsApi.get(id) });
@@ -45,14 +43,14 @@ export default function PatientDetailPage() {
             <Row k="Date of birth" v={formatDate(p.dateOfBirth)} /><Row k="Sex" v={<span className="capitalize">{p.sex}</span>} />
             <Row k="Email" v={p.email ? <span className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-slate-400" />{p.email}</span> : '—'} />
             <Row k="Phone" v={p.phone ? <span className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-slate-400" />{p.phone}</span> : '—'} />
-            <Row k="Portal account" v={p.userId ? 'Linked' : 'Not linked'} /><Row k="Registered" v={formatDate(p.createdAt)} />
+            <Row k="Portal account" v={p.userId ? (p.portalAccountName ?? 'Linked') : 'Not linked'} /><Row k="Registered" v={formatDate(p.createdAt)} />
           </CardContent></Card>
         <div className="space-y-4 md:col-span-2">
           <p className="text-sm font-semibold">Enrollments</p>
           <DataTable rows={enrollments.data?.items} rowKey={(e) => e.id} loading={enrollments.isLoading} error={enrollments.error} emptyTitle="Not enrolled in any trial"
             columns={[
-              { header: 'Trial', cell: (e) => <Link className="font-medium text-brand-700 hover:underline" to={`/app/trials/${e.trialId}`}>{dir.trialCode(e.trialId)}</Link> },
-              { header: 'Site', cell: (e) => dir.siteName(e.trialSiteId), hideOnMobile: true },
+              { header: 'Trial', cell: (e) => <Link className="font-medium text-brand-700 hover:underline" to={`/app/trials/${e.trialId}`}>{e.trialCode ?? '—'}</Link> },
+              { header: 'Site', cell: (e) => e.siteName ?? '—', hideOnMobile: true },
               { header: 'Arm', cell: (e) => e.arm ?? '—', hideOnMobile: true },
               { header: 'Status', cell: (e) => <StatusBadge value={e.status} /> },
             ]} />

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Eye, Pencil, Plus, Trash2 } from 'lucide-react';
 import { patientsApi } from '@/api/patients';
+import { UserCheck } from 'lucide-react';
 import { PageHeader } from '@/components/common/PageHeader';
 import { FilterBar, FilterSelect, SearchBox } from '@/components/common/FilterBar';
 import { StatusBadge } from '@/components/common/StatusBadge';
@@ -28,12 +29,19 @@ export default function PatientsPage() {
   const [deleting, setDeleting] = useState<Patient | null>(null);
   const debounced = useDebounce(search);
   const filters = { page, pageSize: 15, search: debounced, status: (status || undefined) as PatientStatus | undefined, sort: 'lastName' as const, order: 'asc' as const };
+  const pending = useQuery({ queryKey: ['linkable-accounts', 'count'], queryFn: () => patientsApi.linkableAccounts({ pageSize: 1 }), enabled: hasRole('admin', 'coordinator') });
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['patients', filters], queryFn: () => patientsApi.list(filters), placeholderData: (p) => p });
 
   return (
     <>
       <PageHeader title="Patients" description="Registered participants across all trials."
         actions={hasRole('admin', 'coordinator') && <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />New patient</Button>} />
+      {!!pending.data?.meta.total && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+          <UserCheck className="mt-0.5 h-4 w-4 shrink-0" />
+          <p><b>{pending.data.meta.total}</b> registered participant account{pending.data.meta.total === 1 ? ' is' : 's are'} waiting to be linked. Open the matching patient, choose <b>Edit</b> and select their <b>Portal account</b>.</p>
+        </div>
+      )}
       <FilterBar>
         <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search name or subject code" />
         <FilterSelect value={status} onChange={(v) => { setStatus(v); setPage(1); }} options={['active', 'withdrawn', 'inactive']} allLabel="All statuses" label="Filter by status" />

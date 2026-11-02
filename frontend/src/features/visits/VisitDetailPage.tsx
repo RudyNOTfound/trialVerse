@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDateTime } from '@/utils/format';
 import { VISIT_NEXT } from '@/utils/transitions';
 import { OtpPanel } from './OtpPanel';
@@ -23,7 +22,6 @@ export default function VisitDetailPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const { hasRole } = useAuth();
-  const dir = useDirectory();
   const [error, setError] = useState<unknown>(null);
   const [editing, setEditing] = useState(false);
   const visit = useQuery({ queryKey: ['visit', id], queryFn: () => visitsApi.get(id) });
@@ -46,7 +44,7 @@ export default function VisitDetailPage() {
   return (
     <>
       <Link to="/app/visits" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft className="h-4 w-4" />Visits</Link>
-      <PageHeader title={`${v.visitType} · ${dir.patientName(v.patientId)}`} description={`${dir.trialCode(v.trialId)} · ${dir.siteName(v.trialSiteId)}`} actions={<><StatusBadge value={v.status} />{canEditVisit && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit / reschedule</Button>}</>} />
+      <PageHeader title={`${v.visitType} · ${v.patientName ?? '—'}`} description={`${v.trialCode ?? '—'} · ${v.siteName ?? '—'}`} actions={<><StatusBadge value={v.status} />{canEditVisit && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit / reschedule</Button>}</>} />
       <Card className="mb-6"><CardContent className="py-6"><VisitStepper visit={v} /></CardContent></Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -55,10 +53,10 @@ export default function VisitDetailPage() {
           <Card>
             <CardHeader><CardTitle>Visit details</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <Row k="Patient" v={<Link className="text-brand-700 hover:underline" to={`/app/patients/${v.patientId}`}>{dir.patientName(v.patientId)}</Link>} />
+              <Row k="Patient" v={<Link className="text-brand-700 hover:underline" to={`/app/patients/${v.patientId}`}>{v.patientName ?? '—'}</Link>} />
               <Row k="Scheduled" v={formatDateTime(v.scheduledAt)} />
               <Row k="OTP issued" v={formatDateTime(v.otpIssuedAt)} />
-              <Row k="Verified" v={v.verifiedAt ? `${formatDateTime(v.verifiedAt)} by ${dir.userName(v.verifiedBy)}` : '—'} />
+              <Row k="Verified" v={v.verifiedAt ? `${formatDateTime(v.verifiedAt)} by ${v.verifiedByName ?? 'Unknown'}` : '—'} />
               <Row k="Completed" v={formatDateTime(v.completedAt)} />
               {v.notes && <Row k="Notes" v={v.notes} />}
             </CardContent>

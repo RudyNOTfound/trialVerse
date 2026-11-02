@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate } from '@/utils/format';
 import { SiteFormDialog } from './SiteFormDialog';
 
@@ -22,7 +21,6 @@ export default function SiteDetailPage({ base = '/app/trials', readOnly = false 
   const qc = useQueryClient();
   const toast = useToast();
   const { hasRole } = useAuth();
-  const dir = useDirectory();
   const [editing, setEditing] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const site = useQuery({ queryKey: ['trial-site', id, siteId], queryFn: () => trialsApi.site(id, siteId) });
@@ -53,7 +51,7 @@ export default function SiteDetailPage({ base = '/app/trials', readOnly = false 
         <Card><CardHeader><CardTitle>Site information</CardTitle></CardHeader><CardContent className="space-y-3 text-sm">
           <Row k="Trial" v={<Link className="text-brand-700 hover:underline" to={`${base}/${id}`}>{trial.data ? `${trial.data.code} · ${trial.data.title}` : '…'}</Link>} />
           <Row k="Location" v={<span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-slate-400" />{[s.city, s.country].filter(Boolean).join(', ')}</span>} />
-          <Row k="Principal investigator" v={s.principalInvestigatorId ? dir.userName(s.principalInvestigatorId) : 'Not assigned'} />
+          <Row k="Principal investigator" v={s.principalInvestigatorId ? s.principalInvestigatorName ?? 'Unknown' : 'Not assigned'} />
           <Row k="Created" v={formatDate(s.createdAt)} /><Row k="Last updated" v={formatDate(s.updatedAt)} />
         </CardContent></Card>
         <Card><CardHeader><CardTitle>Enrollment at this site</CardTitle></CardHeader><CardContent className="grid grid-cols-3 gap-3 text-center">
@@ -63,10 +61,10 @@ export default function SiteDetailPage({ base = '/app/trials', readOnly = false 
         </CardContent></Card>
       </div>
       <p className="mb-2 text-sm font-semibold">Participants</p>
-      <DataTable rows={enrollments.data?.items} rowKey={(e) => e.id} loading={enrollments.isLoading || dir.loading} error={enrollments.error} emptyTitle="No participants at this site"
+      <DataTable rows={enrollments.data?.items} rowKey={(e) => e.id} loading={enrollments.isLoading} error={enrollments.error} emptyTitle="No participants at this site"
         onRowClick={readOnly ? undefined : (e) => nav(`/app/patients/${e.patientId}`)}
         columns={[
-          { header: 'Patient', cell: (e) => <span className="font-medium">{dir.patientName(e.patientId)}</span> },
+          { header: 'Patient', cell: (e) => <span className="font-medium">{e.patientName ?? '—'}</span> },
           { header: 'Arm', cell: (e) => e.arm ?? '—', hideOnMobile: true },
           { header: 'Enrolled', cell: (e) => formatDate(e.enrolledAt), hideOnMobile: true },
           { header: 'Status', cell: (e) => <StatusBadge value={e.status} /> },

@@ -11,10 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { RowActions } from '@/components/common/RowActions';
 import { useToast } from '@/components/ui/toast';
-import { useStaffUsers } from '@/hooks/useStaffUsers';
+import { useStaffDirectory } from '@/hooks/useStaffDirectory';
 import { ActionFormDialog } from './ActionFormDialog';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate, formatDateTime, humanize } from '@/utils/format';
 import { ACTION_NEXT } from '@/utils/transitions';
 import type { ActionItem, ActionStatus, Priority } from '@/types/api';
@@ -23,8 +22,7 @@ const PRIORITIES: Priority[] = ['low', 'medium', 'high', 'critical'];
 
 export default function ActionsPage() {
   const { user, hasRole } = useAuth();
-  const dir = useDirectory();
-  const staff = useStaffUsers();
+  const staff = useStaffDirectory();
   const [assignee, setAssignee] = useState('');
   const [editing, setEditing] = useState<ActionItem | undefined>();
   const [status, setStatus] = useState('');
@@ -41,19 +39,17 @@ export default function ActionsPage() {
         actions={hasRole('admin', 'coordinator', 'investigator') && <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" />New action</Button>} />
       <FilterBar>
         <FilterSelect value={status} onChange={(v) => { setStatus(v); setPage(1); }} options={['pending', 'in_progress', 'completed', 'cancelled', 'overdue']} allLabel="All statuses" label="Filter by status" />
-        {staff.isAdmin
-          ? <FilterSelect value={assignee} onChange={(v) => { setAssignee(v); setPage(1); }} options={(staff.data ?? []).map((u) => ({ value: u.id, label: u.fullName }))} allLabel="All assignees" label="Filter by assignee" />
-          : <FilterSelect value={assignee} onChange={(v) => { setAssignee(v); setPage(1); }} options={user ? [{ value: user.id, label: 'Assigned to me' }] : []} allLabel="All assignees" label="Filter by assignee" />}
+        <FilterSelect value={assignee} onChange={(v) => { setAssignee(v); setPage(1); }} options={(staff.data ?? []).map((u) => ({ value: u.id, label: u.id === user?.id ? `${u.fullName} (me)` : u.fullName }))} allLabel="All assignees" label="Filter by assignee" />
         <FilterSelect value={priority} onChange={(v) => { setPriority(v); setPage(1); }} options={PRIORITIES} allLabel="All priorities" label="Filter by priority" />
       </FilterBar>
-      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading || dir.loading} error={error} onRetry={() => refetch()} rowKey={(a) => a.id} onRowClick={(a) => setSelected(a.id)}
+      <DataTable rows={data?.items} meta={data?.meta} onPageChange={setPage} loading={isLoading} error={error} onRetry={() => refetch()} rowKey={(a) => a.id} onRowClick={(a) => setSelected(a.id)}
         emptyTitle="No actions found" emptyDescription="Create an action to track a follow-up."
         columns={[
           { header: 'Title', cell: (a) => <span className="font-medium text-ink">{a.title}</span> },
           { header: 'Priority', cell: (a) => <StatusBadge value={a.priority} /> },
-          { header: 'Patient', cell: (a) => (a.patientId ? dir.patientName(a.patientId) : '—'), hideOnMobile: true },
+          { header: 'Patient', cell: (a) => (a.patientId ? a.patientName ?? '—' : '—'), hideOnMobile: true },
           { header: 'Due', cell: (a) => <span className={a.isOverdue ? 'flex items-center gap-1 font-medium text-red-600' : ''}>{a.isOverdue && <AlertCircle className="h-3.5 w-3.5" />}{formatDate(a.dueDate)}</span> },
-          { header: 'Assignee', cell: (a) => (a.assigneeId ? dir.userName(a.assigneeId) : <span className="text-muted">Unassigned</span>), hideOnMobile: true },
+          { header: 'Assignee', cell: (a) => (a.assigneeId ? a.assigneeName ?? 'Unknown' : <span className="text-muted">Unassigned</span>), hideOnMobile: true },
           { header: 'Status', cell: (a) => <StatusBadge value={a.effectiveStatus} /> },
           { header: '', className: 'w-10 text-right', cell: (a) => (
             <RowActions label={`Actions for ${a.title}`} actions={[
@@ -74,7 +70,6 @@ function ActionDetailDialog({ id, onClose, onEdit }: { id: string | null; onClos
   const qc = useQueryClient();
   const toast = useToast();
   const { user, hasRole } = useAuth();
-  const dir = useDirectory();
   const [error, setError] = useState<unknown>(null);
   const a = useQuery({ queryKey: ['action', id], queryFn: () => actionsApi.get(id!), enabled: !!id });
   const history = useQuery({ queryKey: ['action-history', id], queryFn: () => actionsApi.history(id!), enabled: !!id });
@@ -93,8 +88,8 @@ function ActionDetailDialog({ id, onClose, onEdit }: { id: string | null; onClos
             {d.description && <p className="text-sm text-slate-700">{d.description}</p>}
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div><dt className="text-xs text-muted">Due</dt><dd className="font-medium">{formatDate(d.dueDate)}</dd></div>
-              <div><dt className="text-xs text-muted">Assignee</dt><dd className="font-medium">{d.assigneeId ? dir.userName(d.assigneeId) : 'Unassigned'}</dd></div>
-              <div><dt className="text-xs text-muted">Patient</dt><dd className="font-medium">{d.patientId ? dir.patientName(d.patientId) : '—'}</dd></div>
+              <div><dt className="text-xs text-muted">Assignee</dt><dd className="font-medium">{d.assigneeId ? d.assigneeName ?? 'Unknown' : 'Unassigned'}</dd></div>
+              <div><dt className="text-xs text-muted">Patient</dt><dd className="font-medium">{d.patientId ? d.patientName ?? '—' : '—'}</dd></div>
               <div><dt className="text-xs text-muted">Created</dt><dd className="font-medium">{formatDateTime(d.createdAt)}</dd></div>
             </dl>
             {(hasRole('admin') || d.createdBy === user?.id || d.assigneeId === user?.id) && d.status !== 'completed' && d.status !== 'cancelled' && <Button size="sm" variant="outline" onClick={() => onEdit(d)}><Pencil className="h-4 w-4" />Edit details</Button>}
@@ -109,7 +104,7 @@ function ActionDetailDialog({ id, onClose, onEdit }: { id: string | null; onClos
               <ol className="space-y-2 border-l border-line pl-4">
                 {(history.data ?? []).map((h) => (
                   <li key={h.id} className="relative text-sm"><span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-brand-500" />{h.fromStatus ? `${humanize(h.fromStatus)} → ` : ''}{humanize(h.toStatus)}
-                    <span className="block text-xs text-muted">{formatDateTime(h.createdAt)} · {dir.userName(h.actorId)}{h.note ? ` · ${h.note}` : ''}</span></li>
+                    <span className="block text-xs text-muted">{formatDateTime(h.createdAt)} · {h.actorName ?? 'System'}{h.note ? ` · ${h.note}` : ''}</span></li>
                 ))}
               </ol>
             </div>

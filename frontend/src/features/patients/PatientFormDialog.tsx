@@ -3,14 +3,14 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { errorMessage } from '@/api/client';
 import { patientsApi } from '@/api/patients';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Input, Select } from '@/components/ui/input';
 import { InlineError } from '@/components/common/States';
 import { useToast } from '@/components/ui/toast';
-import { useDirectory } from '@/hooks/useDirectory';
-import { useUsersByRole } from '@/hooks/useUsersByRole';
+import { useLinkableAccounts } from '@/hooks/useLinkableAccounts';
 import type { Patient, PatientStatus } from '@/types/api';
 
 const schema = z.object({
@@ -26,12 +26,11 @@ const schema = z.object({
 type Values = z.infer<typeof schema>;
 const EMPTY: Values = { firstName: '', lastName: '', dateOfBirth: '', sex: 'unknown', email: '', phone: '', status: 'active', userId: '' };
 
-/** Create or edit a patient. Admins can also link/unlink the participant's portal account (picker needs the admin-only user list). */
+/** Create or edit a patient. Admins and coordinators can link/unlink the participant's portal account from the list of unlinked registrations. */
 export function PatientFormDialog({ open, onOpenChange, patient, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; patient?: Patient; onCreated?: (p: Patient) => void }) {
   const qc = useQueryClient();
   const toast = useToast();
-  const dir = useDirectory();
-  const accounts = useUsersByRole('patient', open);
+  const accounts = useLinkableAccounts(open);
   const [error, setError] = useState<unknown>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   useEffect(() => {
@@ -41,22 +40,35 @@ export function PatientFormDialog({ open, onOpenChange, patient, onCreated }: { 
     }
   }, [open, patient, reset]);
 
-  const linkedElsewhere = new Set(dir.patients.filter((p) => p.userId && p.id !== patient?.id).map((p) => p.userId as string));
-  const available = (accounts.data ?? []).filter((u) => !linkedElsewhere.has(u.id));
+  const available = accounts.data ?? [];
 
   const m = useMutation({
-    mutationFn: (v: Values) => {
+    mutationFn: async (v: Values) => {
       const common = { firstName: v.firstName, lastName: v.lastName, dateOfBirth: v.dateOfBirth, sex: v.sex, email: v.email || undefined, phone: v.phone || undefined };
-      if (!patient) return patientsApi.create({ ...common, ...(accounts.isAdmin && v.userId ? { userId: v.userId } : {}) } as Parameters<typeof patientsApi.create>[0]);
-      return patientsApi.update(patient.id, { ...common, status: v.status as PatientStatus, ...(accounts.isAdmin ? { userId: v.userId || null } : {}) });
+      const saved = patient ? await patientsApi.update(patient.id, { ...common, status: v.status as PatientStatus }) : await patientsApi.create(common);
+      // Linking goes through the dedicated endpoints (validated + audited separately), after the record itself is saved.
+      const wanted = v.userId || null;
+      const current = patient?.userId ?? null;
+      if (wanted !== current) {
+        try {
+          let result = saved;
+          if (current) result = await patientsApi.unlinkAccount(saved.id);
+          if (wanted) result = await patientsApi.linkAccount(saved.id, wanted);
+          return result;
+        } catch (e) {
+          throw new Error(`The patient was ${patient ? 'saved' : 'created'}, but the portal account could not be ${wanted ? 'linked' : 'unlinked'}: ${errorMessage(e)}`);
+        }
+      }
+      return saved;
     },
     onSuccess: (p) => {
       toast.success(patient ? 'Patient updated' : `Patient ${p.subjectCode} created`);
-      for (const k of ['patients', 'directory', 'patient', 'me']) qc.invalidateQueries({ queryKey: [k] });
       onOpenChange(false);
       if (!patient) onCreated?.(p);
     },
     onError: setError,
+    // Refresh on partial failures as well: the record may have changed even if the link step failed.
+    onSettled: () => { for (const k of ['patients', 'directory', 'patient', 'me', 'linkable-accounts']) qc.invalidateQueries({ queryKey: [k] }); },
   });
 
   return (
@@ -74,14 +86,14 @@ export function PatientFormDialog({ open, onOpenChange, patient, onCreated }: { 
             <Field label="Phone (optional)" error={errors.phone?.message}><Input {...register('phone')} /></Field>
             {patient && <Field label="Status" error={errors.status?.message}><Select {...register('status')}><option value="active">Active</option><option value="withdrawn">Withdrawn</option><option value="inactive">Inactive</option></Select></Field>}
           </div>
-          {accounts.isAdmin ? (
-            <Field label="Portal account" hint="Links this record to a participant's login so they can see their own data.">
-              <Select {...register('userId')} disabled={accounts.isLoading}>
-                <option value="">Not linked</option>
-                {available.map((u) => <option key={u.id} value={u.id}>{u.fullName} · {u.email}</option>)}
-              </Select>
-            </Field>
-          ) : patient && <p className="text-xs text-muted">Portal account: {patient.userId ? 'linked' : 'not linked'}. Only administrators can change the link.</p>}
+          <Field label="Portal account" hint="Links this record to a registered participant login so they can see their own data. Only unlinked registrations are listed.">
+            <Select {...register('userId')} disabled={accounts.isLoading}>
+              <option value="">Not linked</option>
+              {patient?.userId && <option value={patient.userId}>{patient.portalAccountName ?? 'Linked account'} (currently linked)</option>}
+              {available.map((u) => <option key={u.id} value={u.id}>{u.fullName} · {u.email}</option>)}
+            </Select>
+          </Field>
+          {!accounts.isLoading && !available.length && !patient?.userId && <p className="-mt-2 text-xs text-muted">No registered accounts are waiting to be linked.</p>}
           <InlineError error={error} />
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

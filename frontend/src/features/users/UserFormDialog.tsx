@@ -35,7 +35,7 @@ export function UserFormDialog({ open, onOpenChange, user }: { open: boolean; on
     mutationFn: (v: Values) => (user ? usersApi.update(user.id, { fullName: v.fullName, ...(v.role !== user.role ? { role: v.role } : {}) }) : usersApi.create(v)),
     onSuccess: (u) => {
       toast.success(editing ? `${u.fullName} updated` : `Account created for ${u.fullName}`);
-      for (const k of ['users', 'user', 'users-by-role', 'directory']) qc.invalidateQueries({ queryKey: [k] });
+      for (const k of ['users', 'user', 'staff-directory', 'linkable-accounts', 'directory']) qc.invalidateQueries({ queryKey: [k] });
       onOpenChange(false);
     },
     onError: setError,
