@@ -1,30 +1,35 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, CheckCheck, CalendarX, Ban } from 'lucide-react';
+import { ArrowLeft, CheckCheck, CalendarX, Ban, Pencil } from 'lucide-react';
 import { visitsApi } from '@/api/visits';
 import { PageHeader } from '@/components/common/PageHeader';
 import { ErrorState, InlineError, Skeleton } from '@/components/common/States';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDirectory } from '@/hooks/useDirectory';
 import { formatDateTime } from '@/utils/format';
 import { VISIT_NEXT } from '@/utils/transitions';
 import { OtpPanel } from './OtpPanel';
+import { VisitActivity } from './VisitActivity';
+import { VisitEditDialog } from './VisitEditDialog';
 import { VisitStepper } from './VisitStepper';
 
 export default function VisitDetailPage() {
   const { id = '' } = useParams();
   const qc = useQueryClient();
+  const toast = useToast();
   const { hasRole } = useAuth();
   const dir = useDirectory();
   const [error, setError] = useState<unknown>(null);
+  const [editing, setEditing] = useState(false);
   const visit = useQuery({ queryKey: ['visit', id], queryFn: () => visitsApi.get(id) });
   const setStatus = useMutation({
     mutationFn: (status: 'completed' | 'missed' | 'cancelled') => visitsApi.setStatus(id, status),
-    onSuccess: () => { setError(null); qc.invalidateQueries({ queryKey: ['visit', id] }); qc.invalidateQueries({ queryKey: ['visits'] }); qc.invalidateQueries({ queryKey: ['overview'] }); },
+    onSuccess: () => { setError(null); toast.success('Visit updated'); qc.invalidateQueries({ queryKey: ['visit-activity', id] }); qc.invalidateQueries({ queryKey: ['visit', id] }); qc.invalidateQueries({ queryKey: ['visits'] }); qc.invalidateQueries({ queryKey: ['overview'] }); },
     onError: setError,
   });
 
@@ -33,17 +38,19 @@ export default function VisitDetailPage() {
   const v = visit.data;
   const next = VISIT_NEXT[v.status];
   // Only investigators / admins close a visit; the server rejects coordinators with 403.
+  // The API only permits edits while scheduled / otp_pending, and only for admin / coordinator.
+  const canEditVisit = (v.status === 'scheduled' || v.status === 'otp_pending') && hasRole('admin', 'coordinator');
   const canComplete = next.includes('completed') && hasRole('admin', 'investigator');
   const confirmThen = (s: 'missed' | 'cancelled') => { if (window.confirm(`Mark this visit as ${s}? This cannot be undone.`)) setStatus.mutate(s); };
 
   return (
     <>
       <Link to="/app/visits" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft className="h-4 w-4" />Visits</Link>
-      <PageHeader title={`${v.visitType} · ${dir.patientName(v.patientId)}`} description={`${dir.trialCode(v.trialId)} · ${dir.siteName(v.trialSiteId)}`} actions={<StatusBadge value={v.status} />} />
+      <PageHeader title={`${v.visitType} · ${dir.patientName(v.patientId)}`} description={`${dir.trialCode(v.trialId)} · ${dir.siteName(v.trialSiteId)}`} actions={<><StatusBadge value={v.status} />{canEditVisit && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit / reschedule</Button>}</>} />
       <Card className="mb-6"><CardContent className="py-6"><VisitStepper visit={v} /></CardContent></Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <OtpPanel visit={v} mode="staff" />
+        <div className="space-y-6"><OtpPanel visit={v} mode="staff" /><VisitActivity visitId={v.id} /></div>
         <div className="space-y-6">
           <Card>
             <CardHeader><CardTitle>Visit details</CardTitle></CardHeader>
@@ -73,6 +80,7 @@ export default function VisitDetailPage() {
           )}
         </div>
       </div>
+      <VisitEditDialog visit={v} open={editing} onOpenChange={setEditing} />
     </>
   );
 }

@@ -260,3 +260,9 @@ export interface IntegrityScanSummary {
   existingAlerts: number;
   alerts: IntegrityAlert[];
 }
+
+/** GET /integrity/rules. Each rule has `enabled` plus rule-specific numeric settings. */
+export interface IntegrityRulesConfig {
+  engine: { name: string; version: string };
+  baselineConfig: Record<string, { enabled: boolean } & Record<string, boolean | number>>;
+}

@@ -1,4 +1,4 @@
-import { CalendarCheck, FlaskConical, LayoutDashboard, ListChecks, Receipt, Users, UserPlus } from 'lucide-react';
+import { CalendarCheck, UserCog, FlaskConical, LayoutDashboard, ListChecks, Receipt, Users, UserPlus } from 'lucide-react';
 import { StaffShell, type NavItem } from './StaffShell';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -14,5 +14,6 @@ const NAV: NavItem[] = [
 
 export default function OperationsLayout() {
   const { hasRole } = useAuth();
-  return <StaffShell nav={NAV} workspaceLabel="Site operations" switcher={hasRole('admin', 'investigator') ? { to: '/sponsor', label: 'Open sponsor workspace' } : undefined} />;
+  const nav = hasRole('admin') ? [...NAV, { to: '/app/users', label: 'Users', icon: UserCog }] : NAV;
+  return <StaffShell nav={nav} workspaceLabel="Site operations" switcher={hasRole('admin', 'investigator') ? { to: '/sponsor', label: 'Open sponsor workspace' } : undefined} />;
 }

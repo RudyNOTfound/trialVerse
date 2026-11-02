@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -78,6 +78,8 @@ export default function LoginPage() {
             <InlineError error={error} />
             <Button type="submit" className="w-full" size="lg" loading={isSubmitting}>Sign in</Button>
           </form>
+
+          <p className="mt-6 text-center text-sm text-muted">Participating in a trial? <Link to="/register" className="font-medium text-brand-700 hover:underline">Create an account</Link></p>
 
           {import.meta.env.DEV && (
             <div className="mt-8 rounded-lg border border-dashed border-line p-3">

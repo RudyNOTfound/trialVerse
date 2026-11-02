@@ -1,5 +1,7 @@
 import { CalendarDays, Home, Receipt, UserCircle, LogOut } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { ApiError } from '@/api/client';
+import { useMyPatient } from '@/features/participant/hooks';
 import { Logo } from '@/components/common/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -13,7 +15,24 @@ const TABS = [
 
 /** Mobile-first: top bar + fixed bottom tab bar on phones, centred column on larger screens. */
 export default function ParticipantLayout() {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const patient = useMyPatient();
+  // A self-registered account has no patient record until staff link it; every participant endpoint answers 404.
+  const unlinked = patient.error instanceof ApiError && patient.error.status === 404;
+  if (unlinked) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-6 text-center">
+        <Logo className="mb-8" />
+        <div className="max-w-md rounded-xl border border-line bg-white p-8 shadow-sm">
+          <h1 className="text-xl font-semibold text-ink">Account awaiting activation</h1>
+          <p className="mt-2 text-sm text-muted">Thanks for registering{user ? `, ${user.fullName.split(' ')[0]}` : ''}. Your account is not yet linked to a participant record. Please ask your clinic coordinator to link it, then sign in again.</p>
+          <p className="mt-4 text-xs text-muted">Signed in as {user?.email}</p>
+          <button onClick={logout} className="mt-6 w-full rounded-lg bg-navy-900 py-2.5 text-sm font-medium text-white hover:bg-navy-800">Sign out</button>
+          <button onClick={() => patient.refetch()} className="mt-2 w-full rounded-lg border border-line py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Check again</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-30 border-b border-line bg-white/90 backdrop-blur">

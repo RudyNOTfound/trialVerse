@@ -19,11 +19,11 @@ Demo logins (seed data, password `DemoPass#2025`) appear as quick-fill chips on 
 
 | Workspace | Roles | Routes |
 |---|---|---|
-| Site operations `/app` | admin, coordinator, investigator | overview, `patients(/:id)`, `trials(/:id)`, `enrollments`, `visits(/:id)`, `reimbursements`, `actions` |
-| Sponsor oversight `/sponsor` | admin, investigator | overview, `trials(/:id)` (read-only), `risk`, `integrity`, `audit` |
+| Site operations `/app` | admin, coordinator, investigator | overview, `patients(/:id)`, `trials(/:id)`, `trials/:id/sites/:siteId`, `enrollments`, `visits(/:id)`, `reimbursements`, `actions`; **admin only:** `users` |
+| Sponsor oversight `/sponsor` | admin, investigator | overview, `trials(/:id)` and sites (read-only), `risk`, `integrity`, `audit`, `rules` (read-only) |
 | Participant `/me` | patient | home, `visits(/:id)`, `reimbursements`, `profile` (mobile-first, bottom tab bar) |
 
-Unauthenticated → `/login`; wrong role → `/forbidden`; expired/invalid token (401) → session cleared and back to login.
+Public: `/login`, `/register` (participant self-registration; the new account shows an "awaiting activation" screen until staff link it to a patient record). Unauthenticated → `/login`; wrong role → `/forbidden`; expired/invalid token (401) → session cleared and back to login.
 Action-level gating mirrors backend rules (e.g. only admin/investigator see *Mark completed*; approving your own claim is disabled) but every rule is still enforced and reported by the server.
 
 ## Structure
@@ -44,24 +44,34 @@ src/utils/        format, roles, transitions (UI hints mirroring backend state m
 | Area | Endpoints used |
 |---|---|
 | Auth | `POST /auth/login`, `GET /auth/me` |
-| Patients | `GET/POST /patients`, `GET/PATCH /patients/:id`, `GET /patients/me` |
-| Trials & sites | `GET/POST /trials`, `GET/PATCH /trials/:id`, `GET/POST /trials/:id/sites` |
+| Patients | `GET/POST /patients`, `GET/PATCH/DELETE /patients/:id` (PATCH also links/unlinks `userId`), `GET /patients/me` |
+| Trials & sites | `GET/POST /trials`, `GET/PATCH/DELETE /trials/:id`, `GET/POST /trials/:id/sites`, `GET/PATCH /trials/:id/sites/:siteId` |
 | Enrollments | `GET/POST /enrollments`, `PATCH /enrollments/:id` |
-| Visits | `GET/POST /visits`, `GET /visits/:id`, `POST /visits/:id/status` |
+| Visits | `GET/POST /visits`, `GET/PATCH /visits/:id`, `POST /visits/:id/status` (history comes from `GET /audit?entityType=visit&entityId=`) |
 | OTP | `POST/GET /visits/:id/otp`, `POST /visits/:id/otp/verify`, `GET /dev/visits/:id/otp` (dev only) |
 | Reimbursements | list/create/get/`PATCH`, `/history`, `/approve`, `/reject`, `/cancel`, `/payment` |
-| Actions | list/create/get, `POST /actions/:id/status`, `/history` |
+| Actions | list/create/get, `PATCH /actions/:id`, `POST /actions/:id/status`, `/history` |
 | Risk | `GET/POST /risk/assessments`, `GET /risk/assessments/:id` |
 | Integrity | `GET /integrity/alerts(/:id)`, `PATCH /integrity/alerts/:id`, `POST /integrity/scans` |
 | Audit | `GET /audit`, `GET /audit/verify` |
-| Users | `GET /users` (admin only, used to resolve names) |
+| Users (admin only) | `GET/POST /users`, `GET/PATCH /users/:id` |
+| Registration | `POST /auth/register` (name, email, password only) |
+| Rules (read-only) | `GET /risk/rules`, `GET /integrity/rules` |
 
-Not used by the UI: `PATCH /visits/:id`, `PATCH /actions/:id`, all `DELETE`s, user create/update, `GET /risk/rules`, `GET /integrity/rules`, `GET /audit/:id`.
+Not used by the UI: `GET /audit/:id` and the single-record `GET`s that lists already cover.
 
 ## Visit verification workflow
 
 Scheduled → staff **Issue OTP** → (dev) reveal demo code → participant or staff **Verify** → visit `verified` → investigator/admin **Mark completed**.
 Verification and completion are separate operations. Handled outcomes: incorrect code (with remaining attempts), expired, locked, reused / not active, forbidden, invalid state transition, validation. The panel also shows attempts left, a live expiry countdown and the OTP state.
+
+## Phase 2.5 behaviour worth knowing
+
+- **Delete** (admin only) is a soft delete and is refused with 409 when a patient/trial has enrollments; the message is shown in the confirm dialog. Terminate a trial or withdraw a patient instead.
+- **Pickers that need `/users` (admin-only):** principal investigator, portal-account link, action assignee. Coordinators and investigators can still edit everything else; for those pickers they see a note (actions: assign to self or unassign).
+- **Trial/visit/action edits** follow backend rules: visits only while `scheduled`/`otp_pending` (admin, coordinator); actions only by creator, assignee or admin while open; trial code and site code are immutable; trial description/dates can be changed but not cleared (the API has no null for them).
+- **Rules screens are read-only** because the API exposes no way to change rules (server config only).
+- **Visit history** is the audit trail for that visit, so it is visible to admin/investigator only.
 
 ## Known backend limitations / requests (not worked around with fake data)
 
@@ -70,9 +80,12 @@ Verification and completion are separate operations. Handled outcomes: incorrect
 3. **Non-admins cannot resolve user names.** `/users` is admin-only, so actors, assignees and reviewers show a short id (or "System") for coordinator/investigator. Request: a minimal `GET /users/directory` (id, fullName, role) for staff, or embed `actorName` in audit/history rows.
 4. **No aggregate/stat endpoints.** Dashboard numbers use `meta.total` from filtered list calls (several small requests). Request: `GET /stats/overview`, `GET /risk/summary`, `GET /integrity/summary`.
 5. **Directory lookups load whole lists** (pageSize cap 100, paged client-side). Fine at demo scale; needs server-side joins or search endpoints at scale.
-6. **Actions assignee picker** is "assign to me" only, because listing assignable users needs (3).
+6. **Assignee / principal-investigator / portal-account pickers are admin-only** because they need the admin-only user list (3). Request: a staff-readable `GET /users/directory?role=` (id, fullName, role).
 7. **Latest risk per entity** is not exposed; the risk page lists assessment history sorted by score.
-8. No ECG / symptom / reminder / ML endpoints exist, so no such screens were built.
+8. **No visit-history endpoint**; the audit log is used (admin/investigator only). Request: `GET /visits/:id/history` readable by coordinators.
+9. **Registered participants are invisible to coordinators** until an admin links them (patient link needs the user list). Request: expose unlinked patient accounts to coordinators, or let `POST /patients` accept the registrant's email to auto-link.
+10. **Users cannot be deleted**, and email/password cannot be changed by admins (no password reset or change endpoint).
+11. No ECG / symptom / reminder / ML endpoints exist, so no such screens were built.
 
 ## Remaining for Person B / shared integration
 

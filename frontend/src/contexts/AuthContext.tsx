@@ -9,6 +9,7 @@ interface AuthState {
   /** True while a stored token is being validated against /auth/me on first load. */
   loading: boolean;
   login: (email: string, password: string) => Promise<User>;
+  register: (input: { email: string; password: string; fullName: string }) => Promise<User>;
   logout: () => void;
   hasRole: (...roles: Role[]) => boolean;
 }
@@ -51,10 +52,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user;
   }, [qc]);
 
+  const register = useCallback(async (input: { email: string; password: string; fullName: string }) => {
+    const res = await authApi.register(input);
+    tokenStore.set(res.token);
+    qc.clear();
+    setUser(res.user);
+    return res.user;
+  }, [qc]);
+
   const value = useMemo<AuthState>(() => ({
-    user, loading, login, logout,
+    user, loading, login, register, logout,
     hasRole: (...roles) => !!user && roles.includes(user.role),
-  }), [user, loading, login, logout]);
+  }), [user, loading, login, register, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

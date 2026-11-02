@@ -23,7 +23,7 @@ export function useDirectory() {
   });
   // /users is admin-only; other roles simply fall back to short ids for actors / assignees.
   const isAdmin = hasRole('admin');
-  const usersQ = useQuery({ queryKey: ['directory', 'users'], queryFn: () => fetchAll((page) => usersApi.list(page)), enabled: isAdmin, staleTime: 60_000 });
+  const usersQ = useQuery({ queryKey: ['directory', 'users'], queryFn: () => fetchAll((page) => usersApi.list({ page, pageSize: 100 })), enabled: isAdmin, staleTime: 60_000 });
 
   const siteData = siteQs.map((q) => q.data);
   // Fixed-length dependency signature (the number of site queries changes as trials load).

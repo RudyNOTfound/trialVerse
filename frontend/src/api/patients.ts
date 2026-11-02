@@ -1,4 +1,4 @@
-import { get, getPage, patch, post } from './client';
+import { del, get, getPage, patch, post } from './client';
 import type { Patient, PatientStatus, Sex } from '@/types/api';
 
 export interface PatientFilters { page?: number; pageSize?: number; search?: string; status?: PatientStatus; trialId?: string; sort?: 'createdAt' | 'lastName' | 'subjectCode'; order?: 'asc' | 'desc' }
@@ -11,5 +11,7 @@ export const patientsApi = {
   get: (id: string) => get<Patient>(`/patients/${id}`),
   me: () => get<Patient>('/patients/me'),
   create: (b: PatientInput) => post<Patient>('/patients', b),
-  update: (id: string, b: Partial<PatientInput> & { status?: PatientStatus }) => patch<Patient>(`/patients/${id}`, b),
+  update: (id: string, b: Partial<PatientInput> & { status?: PatientStatus; userId?: string | null }) => patch<Patient>(`/patients/${id}`, b),
+  /** Admin only. Soft delete; 409 if the patient has enrollments. */
+  remove: (id: string) => del(`/patients/${id}`),
 };

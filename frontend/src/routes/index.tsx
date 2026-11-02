@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 import { Skeleton } from '@/components/common/States';
 import LoginPage from '@/features/auth/LoginPage';
+import RegisterPage from '@/features/auth/RegisterPage';
 import OperationsLayout from '@/layouts/OperationsLayout';
 import SponsorLayout from '@/layouts/SponsorLayout';
 import ParticipantLayout from '@/layouts/ParticipantLayout';
@@ -19,6 +20,9 @@ const EnrollmentsPage = lazy(() => import('@/features/trials/EnrollmentsPage'));
 const VisitsPage = lazy(() => import('@/features/visits/VisitsPage'));
 const VisitDetailPage = lazy(() => import('@/features/visits/VisitDetailPage'));
 const ReimbursementsPage = lazy(() => import('@/features/reimbursements/ReimbursementsPage'));
+const SiteDetailPage = lazy(() => import('@/features/trials/SiteDetailPage'));
+const RulesPage = lazy(() => import('@/features/sponsor/RulesPage'));
+const UsersPage = lazy(() => import('@/features/users/UsersPage'));
 const ActionsPage = lazy(() => import('@/features/actions/ActionsPage'));
 const SponsorOverview = lazy(() => import('@/features/sponsor/SponsorOverview'));
 const RiskPage = lazy(() => import('@/features/sponsor/RiskPage'));
@@ -35,6 +39,7 @@ const S = ({ children }: { children: React.ReactNode }) => <Suspense fallback={<
 export const router = createBrowserRouter([
   { path: '/', element: <RedirectHome /> },
   { path: '/login', element: <LoginPage /> },
+  { path: '/register', element: <RegisterPage /> },
   { path: '/forbidden', element: <ForbiddenPage /> },
   {
     element: <RequireAuth roles={WORKSPACE_ROLES.operations} />,
@@ -46,6 +51,7 @@ export const router = createBrowserRouter([
         { path: 'patients/:id', element: <S><PatientDetailPage /></S> },
         { path: 'trials', element: <S><TrialsPage /></S> },
         { path: 'trials/:id', element: <S><TrialDetailPage /></S> },
+        { path: 'trials/:id/sites/:siteId', element: <S><SiteDetailPage /></S> },
         { path: 'enrollments', element: <S><EnrollmentsPage /></S> },
         { path: 'visits', element: <S><VisitsPage /></S> },
         { path: 'visits/:id', element: <S><VisitDetailPage /></S> },
@@ -56,6 +62,10 @@ export const router = createBrowserRouter([
     }],
   },
   {
+    element: <RequireAuth roles={['admin']} />,
+    children: [{ path: '/app/users', element: <OperationsLayout />, children: [{ index: true, element: <S><UsersPage /></S> }] }],
+  },
+  {
     element: <RequireAuth roles={WORKSPACE_ROLES.sponsor} />,
     children: [{
       path: '/sponsor', element: <SponsorLayout />,
@@ -63,9 +73,11 @@ export const router = createBrowserRouter([
         { index: true, element: <S><SponsorOverview /></S> },
         { path: 'trials', element: <S><TrialsPage base="/sponsor/trials" readOnly /></S> },
         { path: 'trials/:id', element: <S><TrialDetailPage backTo="/sponsor/trials" readOnly /></S> },
+        { path: 'trials/:id/sites/:siteId', element: <S><SiteDetailPage base="/sponsor/trials" readOnly /></S> },
         { path: 'risk', element: <S><RiskPage /></S> },
         { path: 'integrity', element: <S><IntegrityPage /></S> },
         { path: 'audit', element: <S><AuditPage /></S> },
+        { path: 'rules', element: <S><RulesPage /></S> },
         { path: '*', element: <Navigate to="/sponsor" replace /> },
       ],
     }],

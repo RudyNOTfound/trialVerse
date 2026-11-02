@@ -1,9 +1,10 @@
-import { get, getPage, patch, post } from './client';
+import { del, get, getPage, patch, post } from './client';
 import type { Enrollment, EnrollmentStatus, Trial, TrialPhase, TrialSite, TrialStatus } from '@/types/api';
 
 export interface TrialFilters { page?: number; pageSize?: number; status?: TrialStatus; phase?: TrialPhase; search?: string; sort?: 'createdAt' | 'code' | 'title' | 'startDate'; order?: 'asc' | 'desc' }
 export interface TrialInput { code: string; title: string; description?: string; sponsor: string; phase: TrialPhase; startDate?: string; endDate?: string }
-export interface SiteInput { siteCode: string; name: string; city?: string; country: string }
+export interface SiteInput { siteCode: string; name: string; city?: string; country: string; principalInvestigatorId?: string }
+export interface SiteUpdate { name?: string; city?: string; country?: string; status?: 'active' | 'inactive' | 'closed'; principalInvestigatorId?: string | null }
 export interface EnrollmentFilters { page?: number; pageSize?: number; trialId?: string; patientId?: string; trialSiteId?: string; status?: EnrollmentStatus }
 
 export const trialsApi = {
@@ -11,6 +12,10 @@ export const trialsApi = {
   get: (id: string) => get<Trial>(`/trials/${id}`),
   create: (b: TrialInput) => post<Trial>('/trials', b),
   update: (id: string, b: Partial<Omit<TrialInput, 'code'>> & { status?: TrialStatus }) => patch<Trial>(`/trials/${id}`, b),
+  /** Admin only. Soft delete; 409 if the trial has enrollments. */
+  remove: (id: string) => del(`/trials/${id}`),
+  site: (id: string, siteId: string) => get<TrialSite>(`/trials/${id}/sites/${siteId}`),
+  updateSite: (id: string, siteId: string, b: SiteUpdate) => patch<TrialSite>(`/trials/${id}/sites/${siteId}`, b),
   sites: (id: string) => get<TrialSite[]>(`/trials/${id}/sites`),
   addSite: (id: string, b: SiteInput) => post<TrialSite>(`/trials/${id}/sites`, b),
 };

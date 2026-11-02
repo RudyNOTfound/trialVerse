@@ -1,4 +1,4 @@
-import { Activity, FlaskConical, LayoutDashboard, ScrollText, ShieldAlert } from 'lucide-react';
+import { Activity, FlaskConical, LayoutDashboard, ScrollText, ShieldAlert, SlidersHorizontal } from 'lucide-react';
 import { StaffShell, type NavItem } from './StaffShell';
 
 const NAV: NavItem[] = [
@@ -7,6 +7,7 @@ const NAV: NavItem[] = [
   { to: '/sponsor/risk', label: 'Patient risk', icon: Activity },
   { to: '/sponsor/integrity', label: 'Integrity alerts', icon: ShieldAlert },
   { to: '/sponsor/audit', label: 'Audit log', icon: ScrollText },
+  { to: '/sponsor/rules', label: 'Detection rules', icon: SlidersHorizontal },
 ];
 
 export default function SponsorLayout() {

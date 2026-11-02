@@ -10,6 +10,7 @@ import { DataTable } from '@/components/tables/DataTable';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Input, Textarea } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import { useDirectory } from '@/hooks/useDirectory';
 import { formatDateTime, humanize, shortId } from '@/utils/format';
 import { ALERT_NEXT } from '@/utils/transitions';
@@ -89,12 +90,13 @@ const Stat = ({ k, v }: { k: string; v: number }) => <div className="rounded-lg 
 function AlertDialog({ id, onClose, entityName }: { id: string | null; onClose: () => void; entityName: (t: string, id: string) => string }) {
   const qc = useQueryClient();
   const dir = useDirectory();
+  const toast = useToast();
   const [note, setNote] = useState('');
   const [error, setError] = useState<unknown>(null);
   const a = useQuery({ queryKey: ['alert', id], queryFn: () => integrityApi.alert(id!), enabled: !!id });
   const change = useMutation({
     mutationFn: (status: AlertStatus) => integrityApi.updateAlert(id!, status, note.trim() || undefined),
-    onSuccess: () => { setError(null); setNote(''); for (const k of ['alert', 'alerts', 'sponsor']) qc.invalidateQueries({ queryKey: [k] }); },
+    onSuccess: () => { setError(null); setNote(''); toast.success('Alert updated'); for (const k of ['alert', 'alerts', 'sponsor']) qc.invalidateQueries({ queryKey: [k] }); },
     onError: setError,
   });
   const d = a.data;

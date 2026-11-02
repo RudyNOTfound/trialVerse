@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Input, Select } from '@/components/ui/input';
 import { InlineError } from '@/components/common/States';
-import type { Patient } from '@/types/api';
+import { useToast } from '@/components/ui/toast';
+import { useDirectory } from '@/hooks/useDirectory';
+import { useUsersByRole } from '@/hooks/useUsersByRole';
+import type { Patient, PatientStatus } from '@/types/api';
 
 const schema = z.object({
   firstName: z.string().trim().min(1, 'Required').max(80),
@@ -17,27 +20,39 @@ const schema = z.object({
   sex: z.enum(['female', 'male', 'other', 'unknown']),
   email: z.union([z.literal(''), z.string().email('Enter a valid email')]),
   phone: z.string().max(30),
+  status: z.enum(['active', 'withdrawn', 'inactive']),
+  userId: z.string(),
 });
 type Values = z.infer<typeof schema>;
-const EMPTY: Values = { firstName: '', lastName: '', dateOfBirth: '', sex: 'unknown', email: '', phone: '' };
+const EMPTY: Values = { firstName: '', lastName: '', dateOfBirth: '', sex: 'unknown', email: '', phone: '', status: 'active', userId: '' };
 
+/** Create or edit a patient. Admins can also link/unlink the participant's portal account (picker needs the admin-only user list). */
 export function PatientFormDialog({ open, onOpenChange, patient, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; patient?: Patient; onCreated?: (p: Patient) => void }) {
   const qc = useQueryClient();
+  const toast = useToast();
+  const dir = useDirectory();
+  const accounts = useUsersByRole('patient', open);
   const [error, setError] = useState<unknown>(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<Values>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   useEffect(() => {
-    if (open) { setError(null); reset(patient ? { firstName: patient.firstName, lastName: patient.lastName, dateOfBirth: patient.dateOfBirth, sex: patient.sex, email: patient.email ?? '', phone: patient.phone ?? '' } : EMPTY); }
+    if (open) {
+      setError(null);
+      reset(patient ? { firstName: patient.firstName, lastName: patient.lastName, dateOfBirth: patient.dateOfBirth, sex: patient.sex, email: patient.email ?? '', phone: patient.phone ?? '', status: patient.status, userId: patient.userId ?? '' } : EMPTY);
+    }
   }, [open, patient, reset]);
+
+  const linkedElsewhere = new Set(dir.patients.filter((p) => p.userId && p.id !== patient?.id).map((p) => p.userId as string));
+  const available = (accounts.data ?? []).filter((u) => !linkedElsewhere.has(u.id));
 
   const m = useMutation({
     mutationFn: (v: Values) => {
-      const body = { ...v, email: v.email || undefined, phone: v.phone || undefined };
-      return patient ? patientsApi.update(patient.id, body) : patientsApi.create(body);
+      const common = { firstName: v.firstName, lastName: v.lastName, dateOfBirth: v.dateOfBirth, sex: v.sex, email: v.email || undefined, phone: v.phone || undefined };
+      if (!patient) return patientsApi.create({ ...common, ...(accounts.isAdmin && v.userId ? { userId: v.userId } : {}) } as Parameters<typeof patientsApi.create>[0]);
+      return patientsApi.update(patient.id, { ...common, status: v.status as PatientStatus, ...(accounts.isAdmin ? { userId: v.userId || null } : {}) });
     },
     onSuccess: (p) => {
-      qc.invalidateQueries({ queryKey: ['patients'] });
-      qc.invalidateQueries({ queryKey: ['directory', 'patients'] });
-      qc.invalidateQueries({ queryKey: ['patient', p.id] });
+      toast.success(patient ? 'Patient updated' : `Patient ${p.subjectCode} created`);
+      for (const k of ['patients', 'directory', 'patient', 'me']) qc.invalidateQueries({ queryKey: [k] });
       onOpenChange(false);
       if (!patient) onCreated?.(p);
     },
@@ -46,7 +61,7 @@ export function PatientFormDialog({ open, onOpenChange, patient, onCreated }: { 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent title={patient ? 'Edit patient' : 'New patient'} description={patient ? undefined : 'A subject code is generated automatically.'}>
+      <DialogContent title={patient ? 'Edit patient' : 'New patient'} description={patient ? `Subject ${patient.subjectCode}` : 'A subject code is generated automatically.'}>
         <form onSubmit={handleSubmit((v) => m.mutate(v))} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" error={errors.firstName?.message}><Input {...register('firstName')} /></Field>
@@ -57,7 +72,16 @@ export function PatientFormDialog({ open, onOpenChange, patient, onCreated }: { 
             </Field>
             <Field label="Email (optional)" error={errors.email?.message}><Input type="email" {...register('email')} /></Field>
             <Field label="Phone (optional)" error={errors.phone?.message}><Input {...register('phone')} /></Field>
+            {patient && <Field label="Status" error={errors.status?.message}><Select {...register('status')}><option value="active">Active</option><option value="withdrawn">Withdrawn</option><option value="inactive">Inactive</option></Select></Field>}
           </div>
+          {accounts.isAdmin ? (
+            <Field label="Portal account" hint="Links this record to a participant's login so they can see their own data.">
+              <Select {...register('userId')} disabled={accounts.isLoading}>
+                <option value="">Not linked</option>
+                {available.map((u) => <option key={u.id} value={u.id}>{u.fullName} · {u.email}</option>)}
+              </Select>
+            </Field>
+          ) : patient && <p className="text-xs text-muted">Portal account: {patient.userId ? 'linked' : 'not linked'}. Only administrators can change the link.</p>}
           <InlineError error={error} />
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

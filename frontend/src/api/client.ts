@@ -78,6 +78,10 @@ export async function patch<T>(url: string, body: unknown): Promise<T> {
   return res.data.data;
 }
 
+export async function del(url: string): Promise<void> {
+  await http.delete(url);
+}
+
 /** Drops undefined / empty-string params so filters can be passed straight from UI state. */
 function cleanParams(params?: object) {
   if (!params) return undefined;
@@ -85,7 +89,14 @@ function cleanParams(params?: object) {
 }
 
 export function errorMessage(e: unknown): string {
-  if (e instanceof ApiError) return e.message;
+  if (e instanceof ApiError) {
+    // Validation failures carry per-field messages in `details`; show them instead of the generic summary.
+    if (Array.isArray(e.details)) {
+      const parts = (e.details as Array<{ path?: string; message?: string }>).filter((d) => d?.message).map((d) => (d.path ? `${d.path}: ${d.message}` : d.message));
+      if (parts.length) return parts.join('; ');
+    }
+    return e.message;
+  }
   if (e instanceof Error) return e.message;
   return 'Something went wrong';
 }

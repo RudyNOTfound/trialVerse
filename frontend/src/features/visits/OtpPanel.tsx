@@ -49,6 +49,7 @@ export function OtpPanel({ visit, mode }: { visit: Visit; mode: 'staff' | 'parti
     qc.invalidateQueries({ queryKey: ['otp', visit.id] });
     qc.invalidateQueries({ queryKey: ['visits'] });
     qc.invalidateQueries({ queryKey: ['overview'] });
+    qc.invalidateQueries({ queryKey: ['visit-activity', visit.id] });
   };
 
   const issue = useMutation({

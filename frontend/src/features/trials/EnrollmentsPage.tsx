@@ -14,6 +14,7 @@ import { DataTable } from '@/components/tables/DataTable';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Input, Select } from '@/components/ui/input';
+import { useToast } from '@/components/ui/toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate, humanize } from '@/utils/format';
@@ -23,6 +24,7 @@ import type { Enrollment, EnrollmentStatus } from '@/types/api';
 export default function EnrollmentsPage() {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const toast = useToast();
   const { hasRole } = useAuth();
   const dir = useDirectory();
   const [status, setStatus] = useState('');
@@ -34,7 +36,7 @@ export default function EnrollmentsPage() {
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['enrollments', filters], queryFn: () => enrollmentsApi.list(filters), placeholderData: (p) => p });
   const change = useMutation({
     mutationFn: ({ id, status }: { id: string; status: EnrollmentStatus }) => enrollmentsApi.setStatus(id, status),
-    onSuccess: () => { setRowError(null); qc.invalidateQueries({ queryKey: ['enrollments'] }); qc.invalidateQueries({ queryKey: ['overview'] }); },
+    onSuccess: () => { setRowError(null); toast.success('Enrollment status updated'); qc.invalidateQueries({ queryKey: ['enrollments'] }); qc.invalidateQueries({ queryKey: ['overview'] }); },
     onError: setRowError,
   });
   const canManage = hasRole('admin', 'coordinator', 'investigator');

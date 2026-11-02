@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Mail, Pencil, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, Pencil, Phone, Trash2 } from 'lucide-react';
 import { patientsApi } from '@/api/patients';
 import { enrollmentsApi } from '@/api/trials';
 import { visitsApi } from '@/api/visits';
@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDirectory } from '@/hooks/useDirectory';
 import { formatDate, formatDateTime, formatMoney } from '@/utils/format';
+import { DeletePatientDialog } from './DeletePatientDialog';
 import { PatientFormDialog } from './PatientFormDialog';
 
 export default function PatientDetailPage() {
@@ -23,6 +24,7 @@ export default function PatientDetailPage() {
   const { hasRole } = useAuth();
   const dir = useDirectory();
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const patient = useQuery({ queryKey: ['patient', id], queryFn: () => patientsApi.get(id) });
   const enrollments = useQuery({ queryKey: ['enrollments', { patientId: id }], queryFn: () => enrollmentsApi.list({ patientId: id, pageSize: 50 }) });
   const visits = useQuery({ queryKey: ['visits', { patientId: id }], queryFn: () => visitsApi.list({ patientId: id, pageSize: 50, order: 'desc' }) });
@@ -36,7 +38,7 @@ export default function PatientDetailPage() {
     <>
       <Link to="/app/patients" className="mb-3 inline-flex items-center gap-1 text-sm text-muted hover:text-ink"><ArrowLeft className="h-4 w-4" />Patients</Link>
       <PageHeader title={`${p.firstName} ${p.lastName}`} description={`Subject ${p.subjectCode}`}
-        actions={<>{<StatusBadge value={p.status} />}{hasRole('admin', 'coordinator') && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit</Button>}</>} />
+        actions={<>{<StatusBadge value={p.status} />}{hasRole('admin', 'coordinator') && <Button variant="outline" onClick={() => setEditing(true)}><Pencil className="h-4 w-4" />Edit</Button>}{hasRole('admin') && <Button variant="danger-outline" onClick={() => setDeleting(true)}><Trash2 className="h-4 w-4" />Delete</Button>}</>} />
       <div className="mb-6 grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-1"><CardHeader><CardTitle>Profile</CardTitle></CardHeader>
           <CardContent className="space-y-3 text-sm">
@@ -74,6 +76,7 @@ export default function PatientDetailPage() {
           { header: 'Payment', cell: (r) => <StatusBadge value={r.paymentStatus} />, hideOnMobile: true },
         ]} />
       <PatientFormDialog open={editing} onOpenChange={setEditing} patient={p} />
+      <DeletePatientDialog patient={deleting ? p : null} onOpenChange={setDeleting} onDeleted={() => nav('/app/patients')} />
     </>
   );
 }
