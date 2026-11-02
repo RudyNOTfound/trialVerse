@@ -1,0 +1,2110 @@
+{
+  "anomaly": {
+    "contamination": 0.02,
+    "features": [
+      "sbp_sd",
+      "dbp_sd",
+      "heart_rate_sd",
+      "glucose_sd",
+      "sbp_share_ending_0_or_5",
+      "dbp_share_ending_0_or_5",
+      "sbp_range"
+    ],
+    "flagged": 6,
+    "per_site": [
+      {
+        "enriched": false,
+        "flagged": 0,
+        "mean_anomaly_score": 0.45254067253590163,
+        "other_sites_mean_anomaly_score": 0.467425661850121,
+        "p_value": 0.9879258389480602,
+        "participant_ids": [],
+        "participants": 51,
+        "site_id": "SITE-A"
+      },
+      {
+        "enriched": false,
+        "flagged": 2,
+        "mean_anomaly_score": 0.4727129852720025,
+        "other_sites_mean_anomaly_score": 0.4625978287080491,
+        "p_value": 0.06666988787076429,
+        "participant_ids": [
+          "P-B-038",
+          "P-B-058"
+        ],
+        "participants": 50,
+        "site_id": "SITE-B"
+      },
+      {
+        "enriched": true,
+        "flagged": 3,
+        "mean_anomaly_score": 0.4925786971736093,
+        "other_sites_mean_anomaly_score": 0.4561963718776731,
+        "p_value": 3.4768571347015304e-10,
+        "participant_ids": [
+          "P-C-007",
+          "P-C-010",
+          "P-C-057"
+        ],
+        "participants": 60,
+        "site_id": "SITE-C"
+      },
+      {
+        "enriched": false,
+        "flagged": 1,
+        "mean_anomaly_score": 0.45611952509120335,
+        "other_sites_mean_anomaly_score": 0.46636637800195335,
+        "p_value": 0.9202423416787997,
+        "participant_ids": [
+          "P-D-041"
+        ],
+        "participants": 47,
+        "site_id": "SITE-D"
+      },
+      {
+        "enriched": false,
+        "flagged": 0,
+        "mean_anomaly_score": 0.444422701427265,
+        "other_sites_mean_anomaly_score": 0.4697478993876646,
+        "p_value": 0.9999924867715902,
+        "participant_ids": [],
+        "participants": 54,
+        "site_id": "SITE-E"
+      }
+    ],
+    "rows": 262,
+    "status": "ok"
+  },
+  "ecg": {
+    "cache_hits": 18,
+    "cache_misses": 30,
+    "duplicate_clusters": 6,
+    "ecgs_checked": 48,
+    "ecgs_unreadable": 0
+  },
+  "evaluation": {
+    "ecg_visits_not_in_ground_truth": [],
+    "honest_site_multi_signal_visits": [],
+    "honest_site_single_signal_warnings": 9,
+    "injected_reused_ecg_visits": 24,
+    "injected_unverified_late_night_visits": 18,
+    "multi_signal_visits_not_in_ground_truth": [],
+    "of_which_flagged_multi_signal": 18,
+    "of_which_in_duplicate_clusters": 24,
+    "siteC_visits_total": 480,
+    "siteC_visits_with_multi_signal_finding": 18,
+    "site_level_medium_or_high_findings_by_site": {
+      "SITE-C": 10
+    }
+  },
+  "findings": [
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "269f81a49659",
+      "entityId": "ecg-cluster-269f81a49659",
+      "entityType": "ecg_cluster",
+      "evidence": {
+        "crossParticipant": true,
+        "ecgIds": [
+          "ecg_026",
+          "ecg_026",
+          "ecg_026",
+          "ecg_026"
+        ],
+        "hashBits": 64,
+        "maxHammingDistance": 0,
+        "pairs": [
+          {
+            "a": "ecg_026",
+            "b": "ecg_026",
+            "distance": 0
+          },
+          {
+            "a": "ecg_026",
+            "b": "ecg_026",
+            "distance": 0
+          },
+          {
+            "a": "ecg_026",
+            "b": "ecg_026",
+            "distance": 0
+          },
+          {
+            "a": "ecg_026",
+            "b": "ecg_026",
+            "distance": 0
+          },
+          {
+            "a": "ecg_026",
+            "b": "ecg_026",
+            "distance": 0
+          },
+          {
+            "a": "ecg_026",
+            "b": "ecg_026",
+            "distance": 0
+          }
+        ],
+        "participantIds": [
+          "P-C-014",
+          "P-C-015",
+          "P-C-028",
+          "P-C-036"
+        ],
+        "siteIds": [
+          "SITE-C"
+        ],
+        "visitIds": [
+          "V-C-014-04",
+          "V-C-028-08",
+          "V-C-036-01",
+          "V-C-015-03"
+        ]
+      },
+      "explanation": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+      "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+      "ruleId": "ecg.duplicate_image",
+      "score": 1.0,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "38ebfe715aa3",
+      "entityId": "ecg-cluster-38ebfe715aa3",
+      "entityType": "ecg_cluster",
+      "evidence": {
+        "crossParticipant": true,
+        "ecgIds": [
+          "ecg_029",
+          "ecg_029",
+          "ecg_029",
+          "ecg_029"
+        ],
+        "hashBits": 64,
+        "maxHammingDistance": 0,
+        "pairs": [
+          {
+            "a": "ecg_029",
+            "b": "ecg_029",
+            "distance": 0
+          },
+          {
+            "a": "ecg_029",
+            "b": "ecg_029",
+            "distance": 0
+          },
+          {
+            "a": "ecg_029",
+            "b": "ecg_029",
+            "distance": 0
+          },
+          {
+            "a": "ecg_029",
+            "b": "ecg_029",
+            "distance": 0
+          },
+          {
+            "a": "ecg_029",
+            "b": "ecg_029",
+            "distance": 0
+          },
+          {
+            "a": "ecg_029",
+            "b": "ecg_029",
+            "distance": 0
+          }
+        ],
+        "participantIds": [
+          "P-C-012",
+          "P-C-026",
+          "P-C-032",
+          "P-C-043"
+        ],
+        "siteIds": [
+          "SITE-C"
+        ],
+        "visitIds": [
+          "V-C-032-05",
+          "V-C-026-08",
+          "V-C-012-08",
+          "V-C-043-05"
+        ]
+      },
+      "explanation": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+      "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+      "ruleId": "ecg.duplicate_image",
+      "score": 1.0,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "3e314cf71a83",
+      "entityId": "ecg-cluster-3e314cf71a83",
+      "entityType": "ecg_cluster",
+      "evidence": {
+        "crossParticipant": true,
+        "ecgIds": [
+          "ecg_028",
+          "ecg_028",
+          "ecg_028",
+          "ecg_028"
+        ],
+        "hashBits": 64,
+        "maxHammingDistance": 0,
+        "pairs": [
+          {
+            "a": "ecg_028",
+            "b": "ecg_028",
+            "distance": 0
+          },
+          {
+            "a": "ecg_028",
+            "b": "ecg_028",
+            "distance": 0
+          },
+          {
+            "a": "ecg_028",
+            "b": "ecg_028",
+            "distance": 0
+          },
+          {
+            "a": "ecg_028",
+            "b": "ecg_028",
+            "distance": 0
+          },
+          {
+            "a": "ecg_028",
+            "b": "ecg_028",
+            "distance": 0
+          },
+          {
+            "a": "ecg_028",
+            "b": "ecg_028",
+            "distance": 0
+          }
+        ],
+        "participantIds": [
+          "P-C-001",
+          "P-C-033",
+          "P-C-046",
+          "P-C-052"
+        ],
+        "siteIds": [
+          "SITE-C"
+        ],
+        "visitIds": [
+          "V-C-001-03",
+          "V-C-052-04",
+          "V-C-033-04",
+          "V-C-046-06"
+        ]
+      },
+      "explanation": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+      "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+      "ruleId": "ecg.duplicate_image",
+      "score": 1.0,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "66b108818438",
+      "entityId": "ecg-cluster-66b108818438",
+      "entityType": "ecg_cluster",
+      "evidence": {
+        "crossParticipant": true,
+        "ecgIds": [
+          "ecg_030",
+          "ecg_030",
+          "ecg_030",
+          "ecg_030"
+        ],
+        "hashBits": 64,
+        "maxHammingDistance": 0,
+        "pairs": [
+          {
+            "a": "ecg_030",
+            "b": "ecg_030",
+            "distance": 0
+          },
+          {
+            "a": "ecg_030",
+            "b": "ecg_030",
+            "distance": 0
+          },
+          {
+            "a": "ecg_030",
+            "b": "ecg_030",
+            "distance": 0
+          },
+          {
+            "a": "ecg_030",
+            "b": "ecg_030",
+            "distance": 0
+          },
+          {
+            "a": "ecg_030",
+            "b": "ecg_030",
+            "distance": 0
+          },
+          {
+            "a": "ecg_030",
+            "b": "ecg_030",
+            "distance": 0
+          }
+        ],
+        "participantIds": [
+          "P-C-008",
+          "P-C-020",
+          "P-C-022",
+          "P-C-049"
+        ],
+        "siteIds": [
+          "SITE-C"
+        ],
+        "visitIds": [
+          "V-C-020-04",
+          "V-C-049-05",
+          "V-C-022-07",
+          "V-C-008-02"
+        ]
+      },
+      "explanation": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+      "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+      "ruleId": "ecg.duplicate_image",
+      "score": 1.0,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "878be8aea2e9",
+      "entityId": "ecg-cluster-878be8aea2e9",
+      "entityType": "ecg_cluster",
+      "evidence": {
+        "crossParticipant": true,
+        "ecgIds": [
+          "ecg_027",
+          "ecg_027",
+          "ecg_027",
+          "ecg_027"
+        ],
+        "hashBits": 64,
+        "maxHammingDistance": 0,
+        "pairs": [
+          {
+            "a": "ecg_027",
+            "b": "ecg_027",
+            "distance": 0
+          },
+          {
+            "a": "ecg_027",
+            "b": "ecg_027",
+            "distance": 0
+          },
+          {
+            "a": "ecg_027",
+            "b": "ecg_027",
+            "distance": 0
+          },
+          {
+            "a": "ecg_027",
+            "b": "ecg_027",
+            "distance": 0
+          },
+          {
+            "a": "ecg_027",
+            "b": "ecg_027",
+            "distance": 0
+          },
+          {
+            "a": "ecg_027",
+            "b": "ecg_027",
+            "distance": 0
+          }
+        ],
+        "participantIds": [
+          "P-C-006",
+          "P-C-017",
+          "P-C-031",
+          "P-C-050"
+        ],
+        "siteIds": [
+          "SITE-C"
+        ],
+        "visitIds": [
+          "V-C-017-04",
+          "V-C-006-02",
+          "V-C-031-01",
+          "V-C-050-08"
+        ]
+      },
+      "explanation": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+      "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+      "ruleId": "ecg.duplicate_image",
+      "score": 1.0,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "e5ddb550d2eb",
+      "entityId": "ecg-cluster-e5ddb550d2eb",
+      "entityType": "ecg_cluster",
+      "evidence": {
+        "crossParticipant": true,
+        "ecgIds": [
+          "ecg_025",
+          "ecg_025",
+          "ecg_025",
+          "ecg_025"
+        ],
+        "hashBits": 64,
+        "maxHammingDistance": 0,
+        "pairs": [
+          {
+            "a": "ecg_025",
+            "b": "ecg_025",
+            "distance": 0
+          },
+          {
+            "a": "ecg_025",
+            "b": "ecg_025",
+            "distance": 0
+          },
+          {
+            "a": "ecg_025",
+            "b": "ecg_025",
+            "distance": 0
+          },
+          {
+            "a": "ecg_025",
+            "b": "ecg_025",
+            "distance": 0
+          },
+          {
+            "a": "ecg_025",
+            "b": "ecg_025",
+            "distance": 0
+          },
+          {
+            "a": "ecg_025",
+            "b": "ecg_025",
+            "distance": 0
+          }
+        ],
+        "participantIds": [
+          "P-C-002",
+          "P-C-011",
+          "P-C-037",
+          "P-C-047"
+        ],
+        "siteIds": [
+          "SITE-C"
+        ],
+        "visitIds": [
+          "V-C-011-07",
+          "V-C-002-07",
+          "V-C-047-08",
+          "V-C-037-06"
+        ]
+      },
+      "explanation": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+      "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+      "ruleId": "ecg.duplicate_image",
+      "score": 1.0,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "signalCount": 7,
+        "signals": [
+          "high_retention",
+          "digit_preference",
+          "low_variance",
+          "missing_otp",
+          "late_night_entries",
+          "delayed_entries",
+          "rapid_entry_clusters"
+        ]
+      },
+      "explanation": "Site SITE-C shows 7 independent integrity signals (high_retention, digit_preference, low_variance, missing_otp, late_night_entries, delayed_entries, rapid_entry_clusters). Together they are unusual relative to the other sites and warrant a human review; they do not prove misconduct.",
+      "recommendedReviewAction": "Prioritise this site for a monitoring visit or source-data verification.",
+      "ruleId": "site.multiple_integrity_signals",
+      "score": 1.0,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-001-03",
+      "entityId": "V-C-001-03",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-001",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 136.1,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-04-29T01:16:00+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-04-29T01:25:42+05:30",
+            "cluster_start": "2026-04-29T01:16:00+05:30",
+            "entries": 6,
+            "span_minutes": 9.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-001-03 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-002-07",
+      "entityId": "V-C-002-07",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-002",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 107.0,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-08-20T01:50:20+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-08-20T01:56:44+05:30",
+            "cluster_start": "2026-08-20T01:48:00+05:30",
+            "entries": 6,
+            "span_minutes": 8.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-002-07 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-012-04",
+      "entityId": "V-C-012-04",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-012",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 395.6,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-04-29T01:24:37+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-04-29T01:25:42+05:30",
+            "cluster_start": "2026-04-29T01:16:00+05:30",
+            "entries": 6,
+            "span_minutes": 9.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-012-04 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-014-05",
+      "entityId": "V-C-014-05",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-014",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 84.7,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-06-24T00:47:42+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-06-24T00:47:42+05:30",
+            "cluster_start": "2026-06-24T00:36:00+05:30",
+            "entries": 6,
+            "span_minutes": 11.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-014-05 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-015-07",
+      "entityId": "V-C-015-07",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-015",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 86.2,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-08-20T01:56:44+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-08-20T01:56:44+05:30",
+            "cluster_start": "2026-08-20T01:48:00+05:30",
+            "entries": 6,
+            "span_minutes": 8.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-015-07 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-019-06",
+      "entityId": "V-C-019-06",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-019",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 374.0,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-06-24T00:43:48+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-06-24T00:47:42+05:30",
+            "cluster_start": "2026-06-24T00:36:00+05:30",
+            "entries": 6,
+            "span_minutes": 11.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-019-06 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-020-05",
+      "entityId": "V-C-020-05",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-020",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 465.5,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-06-24T00:41:41+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-06-24T00:47:42+05:30",
+            "cluster_start": "2026-06-24T00:36:00+05:30",
+            "entries": 6,
+            "span_minutes": 11.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-020-05 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-023-05",
+      "entityId": "V-C-023-05",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-023",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 513.6,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-06-24T00:36:00+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-06-24T00:47:42+05:30",
+            "cluster_start": "2026-06-24T00:36:00+05:30",
+            "entries": 6,
+            "span_minutes": 11.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-023-05 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-024-03",
+      "entityId": "V-C-024-03",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-024",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 467.2,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-04-29T01:20:31+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-04-29T01:25:42+05:30",
+            "cluster_start": "2026-04-29T01:16:00+05:30",
+            "entries": 6,
+            "span_minutes": 9.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-024-03 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-026-06",
+      "entityId": "V-C-026-06",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-026",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 372.5,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-06-24T00:37:53+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-06-24T00:47:42+05:30",
+            "cluster_start": "2026-06-24T00:36:00+05:30",
+            "entries": 6,
+            "span_minutes": 11.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-026-06 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-030-04",
+      "entityId": "V-C-030-04",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-030",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 274.1,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-04-29T01:25:42+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-04-29T01:25:42+05:30",
+            "cluster_start": "2026-04-29T01:16:00+05:30",
+            "entries": 6,
+            "span_minutes": 9.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-030-04 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-032-06",
+      "entityId": "V-C-032-06",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-032",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 418.4,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-06-24T00:45:09+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-06-24T00:47:42+05:30",
+            "cluster_start": "2026-06-24T00:36:00+05:30",
+            "entries": 6,
+            "span_minutes": 11.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-032-06 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-033-07",
+      "entityId": "V-C-033-07",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-033",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 156.7,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-08-20T01:55:35+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-08-20T01:56:44+05:30",
+            "cluster_start": "2026-08-20T01:48:00+05:30",
+            "entries": 6,
+            "span_minutes": 8.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-033-07 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-045-08",
+      "entityId": "V-C-045-08",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-045",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 280.3,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-08-20T01:51:25+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-08-20T01:56:44+05:30",
+            "cluster_start": "2026-08-20T01:48:00+05:30",
+            "entries": 6,
+            "span_minutes": 8.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-045-08 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-046-03",
+      "entityId": "V-C-046-03",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-046",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 37.6,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-04-29T01:21:31+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-04-29T01:25:42+05:30",
+            "cluster_start": "2026-04-29T01:16:00+05:30",
+            "entries": 6,
+            "span_minutes": 9.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-046-03 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-047-08",
+      "entityId": "V-C-047-08",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-047",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 136.0,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-08-20T01:48:00+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-08-20T01:56:44+05:30",
+            "cluster_start": "2026-08-20T01:48:00+05:30",
+            "entries": 6,
+            "span_minutes": 8.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-047-08 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-048-08",
+      "entityId": "V-C-048-08",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-048",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 298.1,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-08-20T01:53:26+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-08-20T01:56:44+05:30",
+            "cluster_start": "2026-08-20T01:48:00+05:30",
+            "entries": 6,
+            "span_minutes": 8.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-048-08 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "V-C-057-03",
+      "entityId": "V-C-057-03",
+      "entityType": "visit",
+      "evidence": {
+        "participantId": "P-C-057",
+        "signalCount": 4,
+        "signalEvidence": {
+          "late_entry": {
+            "hours_after_visit": 395.1,
+            "threshold_hours": 24.0
+          },
+          "missing_otp": {
+            "otp_verified": 0
+          },
+          "night_entry": {
+            "entry_timestamp": "2026-04-29T01:19:07+05:30"
+          },
+          "rapid_entry": {
+            "cluster_end": "2026-04-29T01:25:42+05:30",
+            "cluster_start": "2026-04-29T01:16:00+05:30",
+            "entries": 6,
+            "span_minutes": 9.7
+          }
+        },
+        "signals": [
+          "late_entry",
+          "missing_otp",
+          "night_entry",
+          "rapid_entry"
+        ]
+      },
+      "explanation": "Visit V-C-057-03 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+      "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+      "ruleId": "visit.multiple_integrity_signals",
+      "score": 0.8,
+      "severity": "high",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "other_sites_sd": 13.864869369877047,
+        "p_value": 7.721259908891174e-172,
+        "site_sd": 3.6180935696352643,
+        "variance_ratio": 0.06809700698315634
+      },
+      "explanation": "Systolic BP at SITE-C has SD 3.6 versus 13.9 at the other sites (variance ratio 0.07, p=7.7e-172). Real patient data are rarely this uniform.",
+      "recommendedReviewAction": "Check whether readings were copied, templated or entered without measurement.",
+      "ruleId": "site.low_bp_variance",
+      "score": 0.9319,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "diastolicShareEnding0Or5": 0.8895833333333333,
+        "expected": 0.2,
+        "n": 480,
+        "p_value": 3.8812743865583846e-230,
+        "share_ending_0_or_5": 0.8854166666666666
+      },
+      "explanation": "89% of systolic BP readings at SITE-C end in 0 or 5 (about 20% expected if last digits were uniform; n=480, p=3.9e-230). This suggests rounded or invented values.",
+      "recommendedReviewAction": "Request source documents or device logs for a sample of readings.",
+      "ruleId": "site.bp_digit_preference",
+      "score": 0.8854,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "count": 18,
+        "n": 480,
+        "other_sites_rate": 0.0,
+        "p_value": 7.440340925424477e-12,
+        "site_rate": 0.0375
+      },
+      "explanation": "SITE-C has 18 entries made >24 h after the visit (3.8% of 480) versus 0.0% at the other sites (p=7.4e-12).",
+      "recommendedReviewAction": "Review the affected visits and the site's data-entry practices.",
+      "ruleId": "site.delayed_entries",
+      "score": 0.7223,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "count": 18,
+        "n": 480,
+        "other_sites_rate": 0.0,
+        "p_value": 7.440340925424477e-12,
+        "site_rate": 0.0375
+      },
+      "explanation": "SITE-C has 18 entries made late at night (3.8% of 480) versus 0.0% at the other sites (p=7.4e-12).",
+      "recommendedReviewAction": "Review the affected visits and the site's data-entry practices.",
+      "ruleId": "site.late_night_entries",
+      "score": 0.7223,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "flagged": 3,
+        "mean_anomaly_score": 0.4925786971736093,
+        "other_sites_mean_anomaly_score": 0.4561963718776731,
+        "p_value": 3.4768571347015304e-10,
+        "participant_ids": [
+          "P-C-007",
+          "P-C-010",
+          "P-C-057"
+        ],
+        "participants": 60,
+        "site_id": "SITE-C"
+      },
+      "explanation": "Participant recording profiles at SITE-C score higher on the unsupervised anomaly model than at the other sites (mean 0.49 vs 0.46, p=3.5e-10). This is an anomaly signal, not proof of fraud.",
+      "recommendedReviewAction": "Use alongside the site-level statistics; do not act on this score alone.",
+      "ruleId": "site.anomaly_enrichment",
+      "score": 0.4926,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "count": 18,
+        "n": 480,
+        "other_sites_rate": 0.006056527590847914,
+        "p_value": 3.544110255527145e-06,
+        "site_rate": 0.0375
+      },
+      "explanation": "SITE-C has 18 completed visits without OTP verification (3.8% of 480) versus 0.6% at the other sites (p=3.5e-06).",
+      "recommendedReviewAction": "Review the affected visits and the site's data-entry practices.",
+      "ruleId": "site.missing_otp_rate",
+      "score": 0.4661,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "2026-04-29T01:16:00+05:30",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "end": "2026-04-29T01:25:42+05:30",
+        "spanMinutes": 9.7,
+        "start": "2026-04-29T01:16:00+05:30",
+        "visitIds": [
+          "V-C-001-03",
+          "V-C-057-03",
+          "V-C-024-03",
+          "V-C-046-03",
+          "V-C-012-04",
+          "V-C-030-04"
+        ]
+      },
+      "explanation": "6 visits at SITE-C were entered within 9.7 minutes (2026-04-29T01:16:00+05:30 to 2026-04-29T01:25:42+05:30).",
+      "recommendedReviewAction": "Ask who entered these records and compare with visit dates in source documents.",
+      "ruleId": "site.rapid_entry_cluster",
+      "score": null,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "2026-06-24T00:36:00+05:30",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "end": "2026-06-24T00:47:42+05:30",
+        "spanMinutes": 11.7,
+        "start": "2026-06-24T00:36:00+05:30",
+        "visitIds": [
+          "V-C-023-05",
+          "V-C-026-06",
+          "V-C-020-05",
+          "V-C-019-06",
+          "V-C-032-06",
+          "V-C-014-05"
+        ]
+      },
+      "explanation": "6 visits at SITE-C were entered within 11.7 minutes (2026-06-24T00:36:00+05:30 to 2026-06-24T00:47:42+05:30).",
+      "recommendedReviewAction": "Ask who entered these records and compare with visit dates in source documents.",
+      "ruleId": "site.rapid_entry_cluster",
+      "score": null,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "2026-08-20T01:48:00+05:30",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "end": "2026-08-20T01:56:44+05:30",
+        "spanMinutes": 8.7,
+        "start": "2026-08-20T01:48:00+05:30",
+        "visitIds": [
+          "V-C-047-08",
+          "V-C-002-07",
+          "V-C-045-08",
+          "V-C-048-08",
+          "V-C-033-07",
+          "V-C-015-07"
+        ]
+      },
+      "explanation": "6 visits at SITE-C were entered within 8.7 minutes (2026-08-20T01:48:00+05:30 to 2026-08-20T01:56:44+05:30).",
+      "recommendedReviewAction": "Ask who entered these records and compare with visit dates in source documents.",
+      "ruleId": "site.rapid_entry_cluster",
+      "score": null,
+      "severity": "medium",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "suspicious_pattern",
+      "dedupeKey": "SITE-C",
+      "entityId": "SITE-C",
+      "entityType": "site",
+      "evidence": {
+        "other_sites_rate": 0.7083333333333334,
+        "p_value": 1.033381732307052e-09,
+        "site_rate": 1.0
+      },
+      "explanation": "Site SITE-C retained 100% of participants versus 71% at the other sites (p=1.0e-09). High retention alone is not evidence of fraud; it is only meaningful alongside other signals.",
+      "recommendedReviewAction": "Compare with the other signals for this site before acting.",
+      "ruleId": "site.high_retention",
+      "score": 0.6446,
+      "severity": "low",
+      "siteId": "SITE-C"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-A-039-07",
+      "entityId": "V-A-039-07",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-A-039",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-A-039-07 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-A"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-A-057-04",
+      "entityId": "V-A-057-04",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-A-057",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-A-057-04 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-A"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-B-003-01",
+      "entityId": "V-B-003-01",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-B-003",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-B-003-01 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-B"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-B-015-01",
+      "entityId": "V-B-015-01",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-B-015",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-B-015-01 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-B"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-B-045-01",
+      "entityId": "V-B-045-01",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-B-045",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-B-045-01 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-B"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-B-050-02",
+      "entityId": "V-B-050-02",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-B-050",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-B-050-02 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-B"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-D-004-06",
+      "entityId": "V-D-004-06",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-D-004",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-D-004-06 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-D"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-E-026-01",
+      "entityId": "V-E-026-01",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-E-026",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-E-026-01 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-E"
+    },
+    {
+      "category": "data_quality",
+      "dedupeKey": "V-E-036-04",
+      "entityId": "V-E-036-04",
+      "entityType": "visit",
+      "evidence": {
+        "evidence": {
+          "otp_verified": 0
+        },
+        "participantId": "P-E-036",
+        "signalEvidence": {
+          "missing_otp": {
+            "otp_verified": 0
+          }
+        },
+        "signals": [
+          "missing_otp"
+        ]
+      },
+      "explanation": "Visit V-E-036-04 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+      "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record.",
+      "ruleId": "visit.missing_otp",
+      "score": null,
+      "severity": "low",
+      "siteId": "SITE-E"
+    }
+  ],
+  "siteStatistics": [
+    {
+      "dbp_end05": 90,
+      "dbp_n": 381,
+      "dbp_sd": 8.40759561598884,
+      "entries": 381,
+      "late_entries": 0,
+      "n_completed_visits": 381,
+      "n_participants": 60,
+      "n_retained": 44,
+      "n_retention_known": 60,
+      "night_entries": 0,
+      "no_otp": 2,
+      "otp_known": 381,
+      "rapid_entry_clusters": 0,
+      "sbp_end05": 87,
+      "sbp_n": 381,
+      "sbp_sd": 13.968181136632737,
+      "signals": [],
+      "site_id": "SITE-A",
+      "sufficient_data": true,
+      "tests": {
+        "dbp_digit_preference": {
+          "expected": 0.2,
+          "n": 381,
+          "p_value": 0.046348316462730244,
+          "share_ending_0_or_5": 0.23622047244094488
+        },
+        "dbp_variance": {
+          "other_sites_sd": 7.62711365434948,
+          "p_value": 0.9933472305410167,
+          "site_sd": 8.40759561598884,
+          "variance_ratio": 1.215131261649474
+        },
+        "late": {
+          "count": 0,
+          "n": 381,
+          "other_sites_rate": 0.011356466876971609,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "night": {
+          "count": 0,
+          "n": 381,
+          "other_sites_rate": 0.011356466876971609,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "no_otp": {
+          "count": 2,
+          "n": 381,
+          "other_sites_rate": 0.015772870662460567,
+          "p_value": 0.9783263034903302,
+          "site_rate": 0.005249343832020997
+        },
+        "retention": {
+          "other_sites_rate": 0.775,
+          "p_value": 0.8243823091175826,
+          "site_rate": 0.7333333333333333
+        },
+        "sbp_digit_preference": {
+          "expected": 0.2,
+          "n": 381,
+          "p_value": 0.09499386890185729,
+          "share_ending_0_or_5": 0.2283464566929134
+        },
+        "sbp_variance": {
+          "other_sites_sd": 11.726022245933919,
+          "p_value": 0.9999965972548123,
+          "site_sd": 13.968181136632737,
+          "variance_ratio": 1.4189865825953623
+        }
+      }
+    },
+    {
+      "dbp_end05": 74,
+      "dbp_n": 363,
+      "dbp_sd": 8.607279620704166,
+      "entries": 363,
+      "late_entries": 0,
+      "n_completed_visits": 363,
+      "n_participants": 60,
+      "n_retained": 42,
+      "n_retention_known": 60,
+      "night_entries": 0,
+      "no_otp": 4,
+      "otp_known": 363,
+      "rapid_entry_clusters": 0,
+      "sbp_end05": 73,
+      "sbp_n": 363,
+      "sbp_sd": 15.471656160428628,
+      "signals": [],
+      "site_id": "SITE-B",
+      "sufficient_data": true,
+      "tests": {
+        "dbp_digit_preference": {
+          "expected": 0.2,
+          "n": 363,
+          "p_value": 0.44788283305662363,
+          "share_ending_0_or_5": 0.20385674931129477
+        },
+        "dbp_variance": {
+          "other_sites_sd": 7.588375694264722,
+          "p_value": 0.9992076660194065,
+          "site_sd": 8.607279620704166,
+          "variance_ratio": 1.2865722361276593
+        },
+        "late": {
+          "count": 0,
+          "n": 363,
+          "other_sites_rate": 0.011228945726762321,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "night": {
+          "count": 0,
+          "n": 363,
+          "other_sites_rate": 0.011228945726762321,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "no_otp": {
+          "count": 4,
+          "n": 363,
+          "other_sites_rate": 0.014348097317529632,
+          "p_value": 0.763143467846902,
+          "site_rate": 0.011019283746556474
+        },
+        "retention": {
+          "other_sites_rate": 0.7833333333333333,
+          "p_value": 0.9532298817516817,
+          "site_rate": 0.7
+        },
+        "sbp_digit_preference": {
+          "expected": 0.2,
+          "n": 363,
+          "p_value": 0.49998846953988885,
+          "share_ending_0_or_5": 0.20110192837465565
+        },
+        "sbp_variance": {
+          "other_sites_sd": 11.291799690648173,
+          "p_value": 0.9999999999999999,
+          "site_sd": 15.471656160428628,
+          "variance_ratio": 1.8773587858004466
+        }
+      }
+    },
+    {
+      "dbp_end05": 427,
+      "dbp_n": 480,
+      "dbp_sd": 2.6547576808009703,
+      "entries": 480,
+      "late_entries": 18,
+      "n_completed_visits": 480,
+      "n_participants": 60,
+      "n_retained": 60,
+      "n_retention_known": 60,
+      "night_entries": 18,
+      "no_otp": 18,
+      "otp_known": 480,
+      "rapid_entry_clusters": 3,
+      "sbp_end05": 425,
+      "sbp_n": 480,
+      "sbp_sd": 3.6180935696352643,
+      "signals": [
+        "high_retention",
+        "digit_preference",
+        "low_variance",
+        "missing_otp",
+        "late_night_entries",
+        "delayed_entries",
+        "rapid_entry_clusters"
+      ],
+      "site_id": "SITE-C",
+      "sufficient_data": true,
+      "tests": {
+        "dbp_digit_preference": {
+          "expected": 0.2,
+          "n": 480,
+          "p_value": 3.955326105136433e-233,
+          "share_ending_0_or_5": 0.8895833333333333
+        },
+        "dbp_variance": {
+          "other_sites_sd": 8.805736171802787,
+          "p_value": 7.504089925586368e-145,
+          "site_sd": 2.6547576808009703,
+          "variance_ratio": 0.09089048755667106
+        },
+        "late": {
+          "count": 18,
+          "n": 480,
+          "other_sites_rate": 0.0,
+          "p_value": 7.440340925424477e-12,
+          "site_rate": 0.0375
+        },
+        "night": {
+          "count": 18,
+          "n": 480,
+          "other_sites_rate": 0.0,
+          "p_value": 7.440340925424477e-12,
+          "site_rate": 0.0375
+        },
+        "no_otp": {
+          "count": 18,
+          "n": 480,
+          "other_sites_rate": 0.006056527590847914,
+          "p_value": 3.544110255527145e-06,
+          "site_rate": 0.0375
+        },
+        "retention": {
+          "other_sites_rate": 0.7083333333333334,
+          "p_value": 1.033381732307052e-09,
+          "site_rate": 1.0
+        },
+        "sbp_digit_preference": {
+          "expected": 0.2,
+          "n": 480,
+          "p_value": 3.8812743865583846e-230,
+          "share_ending_0_or_5": 0.8854166666666666
+        },
+        "sbp_variance": {
+          "other_sites_sd": 13.864869369877047,
+          "p_value": 7.721259908891174e-172,
+          "site_sd": 3.6180935696352643,
+          "variance_ratio": 0.06809700698315634
+        }
+      }
+    },
+    {
+      "dbp_end05": 72,
+      "dbp_n": 347,
+      "dbp_sd": 9.610008740623982,
+      "entries": 347,
+      "late_entries": 0,
+      "n_completed_visits": 347,
+      "n_participants": 60,
+      "n_retained": 37,
+      "n_retention_known": 60,
+      "night_entries": 0,
+      "no_otp": 1,
+      "otp_known": 347,
+      "rapid_entry_clusters": 0,
+      "sbp_end05": 67,
+      "sbp_n": 347,
+      "sbp_sd": 13.360190657617474,
+      "signals": [],
+      "site_id": "SITE-D",
+      "sufficient_data": true,
+      "tests": {
+        "dbp_digit_preference": {
+          "expected": 0.2,
+          "n": 347,
+          "p_value": 0.38433541809176225,
+          "share_ending_0_or_5": 0.207492795389049
+        },
+        "dbp_variance": {
+          "other_sites_sd": 7.25806587963301,
+          "p_value": 0.9999999999994511,
+          "site_sd": 9.610008740623982,
+          "variance_ratio": 1.753096221187804
+        },
+        "late": {
+          "count": 0,
+          "n": 347,
+          "other_sites_rate": 0.011117974058060531,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "night": {
+          "count": 0,
+          "n": 347,
+          "other_sites_rate": 0.011117974058060531,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "no_otp": {
+          "count": 1,
+          "n": 347,
+          "other_sites_rate": 0.01605929586164299,
+          "p_value": 0.9949169499707547,
+          "site_rate": 0.002881844380403458
+        },
+        "retention": {
+          "other_sites_rate": 0.8041666666666667,
+          "p_value": 0.9997837419207263,
+          "site_rate": 0.6166666666666667
+        },
+        "sbp_digit_preference": {
+          "expected": 0.2,
+          "n": 347,
+          "p_value": 0.6471579089107778,
+          "share_ending_0_or_5": 0.1930835734870317
+        },
+        "sbp_variance": {
+          "other_sites_sd": 11.903895632976823,
+          "p_value": 0.9977532820900465,
+          "site_sd": 13.360190657617474,
+          "variance_ratio": 1.2596418773648164
+        }
+      }
+    },
+    {
+      "dbp_end05": 84,
+      "dbp_n": 395,
+      "dbp_sd": 8.427167737461193,
+      "entries": 395,
+      "late_entries": 0,
+      "n_completed_visits": 395,
+      "n_participants": 60,
+      "n_retained": 47,
+      "n_retention_known": 60,
+      "night_entries": 0,
+      "no_otp": 2,
+      "otp_known": 395,
+      "rapid_entry_clusters": 0,
+      "sbp_end05": 82,
+      "sbp_n": 395,
+      "sbp_sd": 12.245425011856671,
+      "signals": [],
+      "site_id": "SITE-E",
+      "sufficient_data": true,
+      "tests": {
+        "dbp_digit_preference": {
+          "expected": 0.2,
+          "n": 395,
+          "p_value": 0.2828078716496075,
+          "share_ending_0_or_5": 0.21265822784810126
+        },
+        "dbp_variance": {
+          "other_sites_sd": 7.613291823686367,
+          "p_value": 0.9955438287524401,
+          "site_sd": 8.427167737461193,
+          "variance_ratio": 1.225231976900206
+        },
+        "late": {
+          "count": 0,
+          "n": 395,
+          "other_sites_rate": 0.011457670273711012,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "night": {
+          "count": 0,
+          "n": 395,
+          "other_sites_rate": 0.011457670273711012,
+          "p_value": 1.0,
+          "site_rate": 0.0
+        },
+        "no_otp": {
+          "count": 2,
+          "n": 395,
+          "other_sites_rate": 0.015913430935709738,
+          "p_value": 0.9822950554693463,
+          "site_rate": 0.005063291139240506
+        },
+        "retention": {
+          "other_sites_rate": 0.7625,
+          "p_value": 0.42011063598241577,
+          "site_rate": 0.7833333333333333
+        },
+        "sbp_digit_preference": {
+          "expected": 0.2,
+          "n": 395,
+          "p_value": 0.3723135503264128,
+          "share_ending_0_or_5": 0.20759493670886076
+        },
+        "sbp_variance": {
+          "other_sites_sd": 12.109406776050548,
+          "p_value": 0.6166849641251981,
+          "site_sd": 12.245425011856671,
+          "variance_ratio": 1.0225910561858433
+        }
+      }
+    }
+  ],
+  "summary": {
+    "byCategory": {
+      "data_quality": 9,
+      "suspicious_pattern": 35,
+      "technical_violation": 0
+    },
+    "bySeverity": {
+      "critical": 0,
+      "high": 25,
+      "low": 10,
+      "medium": 9
+    },
+    "completedVisits": 1966,
+    "findings": 44,
+    "sites": [
+      "SITE-A",
+      "SITE-B",
+      "SITE-C",
+      "SITE-D",
+      "SITE-E"
+    ],
+    "truncated": 0,
+    "visits": 2400
+  }
+}

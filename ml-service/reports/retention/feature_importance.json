@@ -1,0 +1,56 @@
+[
+  {
+    "feature": "distance_km",
+    "label": "Distance from site",
+    "mean_abs_contribution": 10.942542656902063,
+    "mean_signed_contribution": 0.6263674946343597
+  },
+  {
+    "feature": "missed_reminders",
+    "label": "Missed reminders",
+    "mean_abs_contribution": 6.072928055787137,
+    "mean_signed_contribution": 1.5266189390825464
+  },
+  {
+    "feature": "daily_wage_worker",
+    "label": "Daily-wage worker",
+    "mean_abs_contribution": 4.595460307139577,
+    "mean_signed_contribution": 0.40162267612783825
+  },
+  {
+    "feature": "visits_missed",
+    "label": "Previously missed visits",
+    "mean_abs_contribution": 4.563109333520666,
+    "mean_signed_contribution": 0.025723488255794097
+  },
+  {
+    "feature": "reimbursement_delay_days",
+    "label": "Reimbursement delay",
+    "mean_abs_contribution": 3.7797865683060006,
+    "mean_signed_contribution": 0.34469004480654475
+  },
+  {
+    "feature": "side_effects_reported",
+    "label": "Side effects reported",
+    "mean_abs_contribution": 2.9305158749696076,
+    "mean_signed_contribution": 0.03589427615861436
+  },
+  {
+    "feature": "phone_changed",
+    "label": "Phone number changed",
+    "mean_abs_contribution": 2.0545409757793336,
+    "mean_signed_contribution": 0.17833089506903957
+  },
+  {
+    "feature": "site_id",
+    "label": "Study site",
+    "mean_abs_contribution": 1.0144826315769149,
+    "mean_signed_contribution": 0.166698061267752
+  },
+  {
+    "feature": "age",
+    "label": "Age",
+    "mean_abs_contribution": 0.19035089350786044,
+    "mean_signed_contribution": 0.02636351212000916
+  }
+]
