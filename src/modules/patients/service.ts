@@ -3,13 +3,19 @@ import type { z } from 'zod';
 import type { Actor, Ctx } from '../../context';
 import { AppError } from '../../utils/errors';
 import { changedKeys, inTransaction, mapRow, mapRows, nowIso, orderBy, updateRow } from '../../utils/db';
+import { createLookups } from '../../utils/lookups';
 import { appendAuditEvent } from '../audit/chain';
 import type { createPatientBody, listPatientsQuery, updatePatientBody } from './schemas';
+
+/** Registered patient-role account that has no patient record yet. */
+export interface LinkableAccount { id: string; fullName: string; email: string; createdAt: string }
 
 export interface PatientDto {
   id: string; subjectCode: string; userId: string | null; firstName: string; lastName: string;
   dateOfBirth: string; sex: string; email: string | null; phone: string | null; status: string;
   createdAt: string; updatedAt: string;
+  /** Embedded display name of the linked portal account (additive, read-only). */
+  portalAccountName?: string | null;
 }
 
 const COLS = 'id, subject_code, user_id, first_name, last_name, date_of_birth, sex, email, phone, status, created_at, updated_at';
@@ -20,16 +26,23 @@ export function createPatientService(ctx: Ctx) {
   const find = (id: string): PatientDto | undefined =>
     mapRow<PatientDto>(db.prepare(`SELECT ${COLS} FROM patients WHERE id = ? AND deleted_at IS NULL`).get(id) as any);
 
+  const lookups = createLookups(db);
+  const withAccountNames = (items: PatientDto[]): PatientDto[] => {
+    const u = lookups.users(items.map((p) => p.userId));
+    return items.map((p) => ({ ...p, portalAccountName: p.userId ? u.get(p.userId)?.name ?? null : null }));
+  };
+
   const get = (id: string): PatientDto => {
     const p = find(id);
     if (!p) throw AppError.notFound('Patient');
-    return p;
+    return withAccountNames([p])[0]!;
   };
 
   function assertLinkableUser(userId: string, exceptPatientId?: string) {
-    const u = db.prepare('SELECT role FROM users WHERE id = ?').get(userId) as { role: string } | undefined;
+    const u = db.prepare('SELECT role, is_active FROM users WHERE id = ?').get(userId) as { role: string; is_active: number } | undefined;
     if (!u) throw AppError.validation('userId does not reference an existing user');
     if (u.role !== 'patient') throw AppError.validation('Only users with the patient role can be linked to a patient record');
+    if (!u.is_active) throw AppError.validation('This account is deactivated and cannot be linked');
     const taken = db.prepare('SELECT id FROM patients WHERE user_id = ? AND id != ?').get(userId, exceptPatientId ?? '') as any;
     if (taken) throw AppError.conflict('This user is already linked to another patient');
   }
@@ -42,7 +55,7 @@ export function createPatientService(ctx: Ctx) {
     getByUserId(userId: string): PatientDto {
       const p = mapRow<PatientDto>(db.prepare(`SELECT ${COLS} FROM patients WHERE user_id = ? AND deleted_at IS NULL`).get(userId) as any);
       if (!p) throw AppError.notFound('Patient record for this account');
-      return p;
+      return withAccountNames([p])[0]!;
     },
 
     create(input: z.infer<typeof createPatientBody>, actor: Actor): PatientDto {
@@ -84,7 +97,7 @@ export function createPatientService(ctx: Ctx) {
       const ob = orderBy(q.sort, q.order, { createdAt: 'p.created_at', lastName: 'p.last_name', subjectCode: 'p.subject_code' }, 'p.created_at');
       const cols = COLS.split(', ').map((c) => `p.${c}`).join(', ');
       const rows = db.prepare(`SELECT ${cols} FROM patients p ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<PatientDto>(rows), total };
+      return { items: withAccountNames(mapRows<PatientDto>(rows)), total };
     },
 
     update(id: string, patch: z.infer<typeof updatePatientBody>, actor: Actor): PatientDto {
@@ -99,6 +112,45 @@ export function createPatientService(ctx: Ctx) {
           actorId: actor.id, action: 'patient.updated', entityType: 'patient', entityId: id,
           metadata: { changedFields: keys, ...(keys.includes('status') ? { status: { from: existing.status, to: patch.status } } : {}) },
         });
+      });
+      return get(id);
+    },
+
+    /**
+     * Registered portal accounts that are still waiting to be linked: active, patient role, no patient record.
+     * Coordinators get this narrow view instead of the full (admin-only) user list. Email is included only so staff
+     * can match the account to the right person.
+     */
+    linkableAccounts(q: { page: number; pageSize: number; order: 'asc' | 'desc'; search?: string }) {
+      const where = [`u.role = 'patient'`, 'u.is_active = 1', 'NOT EXISTS (SELECT 1 FROM patients p WHERE p.user_id = u.id)'];
+      const params: unknown[] = [];
+      if (q.search) { where.push('(u.full_name LIKE ? OR u.email LIKE ?)'); params.push(`%${q.search}%`, `%${q.search}%`); }
+      const w = `WHERE ${where.join(' AND ')}`;
+      const total = (db.prepare(`SELECT COUNT(*) c FROM users u ${w}`).get(...params) as { c: number }).c;
+      const rows = db.prepare(`SELECT u.id, u.full_name, u.email, u.created_at FROM users u ${w} ORDER BY u.created_at ${q.order === 'asc' ? 'ASC' : 'DESC'}, u.id LIMIT ? OFFSET ?`)
+        .all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
+      return { items: mapRows<LinkableAccount>(rows), total };
+    },
+
+    /** Links a registered portal account to this patient record. Rejects wrong role, inactive, already-linked user, or already-linked patient. */
+    linkAccount(id: string, userId: string, actor: Actor): PatientDto {
+      inTransaction(db, () => {
+        const existing = get(id);
+        if (existing.userId) throw AppError.conflict(existing.userId === userId ? 'This account is already linked to this patient' : 'This patient is already linked to a portal account; unlink it first');
+        assertLinkableUser(userId, id);
+        updateRow(db, 'patients', id, { userId });
+        appendAuditEvent(db, { actorId: actor.id, action: 'patient.account_linked', entityType: 'patient', entityId: id, metadata: { userId } });
+      });
+      return get(id);
+    },
+
+    /** Removes the portal link (the participant loses access to their data until re-linked). */
+    unlinkAccount(id: string, actor: Actor): PatientDto {
+      inTransaction(db, () => {
+        const existing = get(id);
+        if (!existing.userId) throw AppError.conflict('This patient has no linked portal account');
+        updateRow(db, 'patients', id, { userId: null });
+        appendAuditEvent(db, { actorId: actor.id, action: 'patient.account_unlinked', entityType: 'patient', entityId: id, metadata: { userId: existing.userId } });
       });
       return get(id);
     },

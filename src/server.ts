@@ -15,7 +15,13 @@ function main() {
   const app = createApp(ctx);
   const server = app.listen(config.port, () => {
     ctx.logger.info({ port: config.port, env: config.env, docs: `http://localhost:${config.port}/api/docs` }, 'TrialGuard API listening');
-    if (config.otp.demoEnabled) ctx.logger.warn('DEMO_OTP_ENABLED=true: OTPs are returned in API responses. Never enable outside development.');
+    if (config.email.enabled) {
+      ctx.logger.info({ provider: ctx.email.providerName, from: config.email.from, cooldownSeconds: config.otp.resendCooldownSeconds }, 'OTP delivery: email');
+    } else if (config.otp.demoEnabled) {
+      ctx.logger.warn('DEMO_OTP_ENABLED=true: OTPs are returned in API responses and NOT emailed. Never enable outside development.');
+    } else {
+      ctx.logger.warn('No OTP delivery channel is configured: issuing an OTP will fail with 503. Set OTP_EMAIL_ENABLED=true with RESEND_API_KEY and OTP_FROM_EMAIL (see README).');
+    }
   });
 
   const shutdown = (signal: string) => {

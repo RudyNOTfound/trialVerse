@@ -3,9 +3,10 @@ import type { Express } from 'express';
 import { createApp } from '../src/app';
 import { buildContext, type BuildOptions } from '../src/bootstrap';
 import { loadConfig, type AppConfig } from '../src/config/env';
-import { createLogger } from '../src/config/logger';
+import { createLogger, type Logger } from '../src/config/logger';
 import type { Actor, Ctx, Role } from '../src/context';
 import { signToken } from '../src/middleware/auth';
+import { EmailDeliveryError, type EmailMessage, type EmailProvider } from '../src/email/types';
 import { createServices, type Services } from '../src/services';
 
 export const TEST_ENV: Record<string, string> = {
@@ -18,14 +19,45 @@ export const TEST_ENV: Record<string, string> = {
   BCRYPT_ROUNDS: '4',
   RATE_LIMIT_ENABLED: 'false',
   DEMO_OTP_ENABLED: 'true',
+  OTP_RESEND_COOLDOWN_SECONDS: '0', // new OTP tests set the real 60s default explicitly
 };
+
+/** Environment for a production-like setup: real (fake-provider) email delivery, demo mode off. */
+export const EMAIL_ENV: Record<string, string> = {
+  OTP_EMAIL_ENABLED: 'true', RESEND_API_KEY: 're_test_not_a_real_key', OTP_FROM_EMAIL: 'TrialVerse <noreply@test.local>', DEMO_OTP_ENABLED: 'false',
+};
+
+/** In-memory EmailProvider: records messages, can fail or delay on demand. Never touches the network. */
+export class FakeEmailProvider implements EmailProvider {
+  readonly name = 'fake';
+  sent: EmailMessage[] = [];
+  failure: Error | null = null;
+  delayMs = 0;
+  async send(message: EmailMessage) {
+    if (this.delayMs) await new Promise((r) => setTimeout(r, this.delayMs));
+    if (this.failure) throw this.failure;
+    this.sent.push(message);
+    return { id: `msg_${this.sent.length}` };
+  }
+  fail(reason: ConstructorParameters<typeof EmailDeliveryError>[0] = 'provider_unavailable', detail = 'secret-provider-detail') { this.failure = new EmailDeliveryError(reason, detail); }
+  recover() { this.failure = null; }
+  /** The code the participant would read from the most recent email. */
+  lastCode(): string {
+    const m = /code is: (\d+)/.exec(this.sent.at(-1)?.text ?? '');
+    if (!m) throw new Error('no OTP email sent');
+    return m[1]!;
+  }
+}
 
 export const makeConfig = (over: Record<string, string> = {}): AppConfig => loadConfig({ ...TEST_ENV, ...over });
 
 export interface Harness { app: Express; ctx: Ctx; s: Services; api: ReturnType<typeof request> }
 
-export function makeHarness(opts: { env?: Record<string, string> } & Omit<BuildOptions, 'logger'> = {}): Harness {
-  const ctx = buildContext(makeConfig(opts.env), { logger: createLogger('silent'), riskModel: opts.riskModel, integrityModel: opts.integrityModel });
+export function makeHarness(opts: { env?: Record<string, string>; logger?: Logger } & Omit<BuildOptions, 'logger'> = {}): Harness {
+  const config = makeConfig(opts.env);
+  // The suite must never reach a real email provider: whenever email is enabled and none was injected, use the in-memory fake.
+  const emailProvider = opts.emailProvider ?? (config.email.enabled ? new FakeEmailProvider() : undefined);
+  const ctx = buildContext(config, { logger: opts.logger ?? createLogger('silent'), riskModel: opts.riskModel, integrityModel: opts.integrityModel, emailProvider });
   const app = createApp(ctx);
   return { app, ctx, s: createServices(ctx), api: request(app) };
 }

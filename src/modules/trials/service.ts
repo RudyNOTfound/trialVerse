@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { Actor, Ctx } from '../../context';
 import { AppError } from '../../utils/errors';
 import { changedKeys, inTransaction, mapRow, mapRows, nowIso, orderBy, updateRow } from '../../utils/db';
+import { createLookups } from '../../utils/lookups';
 import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
 import { appendAuditEvent } from '../audit/chain';
 import type { createEnrollmentBody, createSiteBody, createTrialBody, listEnrollmentsQuery, listTrialsQuery, updateSiteBody, updateTrialBody } from './schemas';
@@ -14,10 +15,14 @@ export interface TrialDto {
 export interface SiteDto {
   id: string; trialId: string; siteCode: string; name: string; city: string | null; country: string;
   principalInvestigatorId: string | null; status: string; createdAt: string; updatedAt: string;
+  /** Embedded display name (additive, read-only). */
+  principalInvestigatorName?: string | null;
 }
 export interface EnrollmentDto {
   id: string; patientId: string; trialId: string; trialSiteId: string; status: string; arm: string | null;
   enrolledAt: string | null; endedAt: string | null; createdAt: string; updatedAt: string;
+  /** Embedded display names (additive, read-only). */
+  patientName?: string | null; patientCode?: string | null; trialCode?: string | null; trialTitle?: string | null; siteName?: string | null;
 }
 
 type TrialStatus = 'draft' | 'active' | 'suspended' | 'completed' | 'terminated';
@@ -46,6 +51,22 @@ const isUnique = (err: unknown) => (err as { code?: string }).code === 'SQLITE_C
 
 export function createTrialService(ctx: Ctx) {
   const { db } = ctx;
+  const lookups = createLookups(db);
+
+  const siteWithNames = (items: SiteDto[]): SiteDto[] => {
+    const u = lookups.users(items.map((s) => s.principalInvestigatorId));
+    return items.map((s) => ({ ...s, principalInvestigatorName: s.principalInvestigatorId ? u.get(s.principalInvestigatorId)?.name ?? null : null }));
+  };
+  const enrollmentWithNames = (items: EnrollmentDto[]): EnrollmentDto[] => {
+    const p = lookups.patients(items.map((e) => e.patientId));
+    const t = lookups.trials(items.map((e) => e.trialId));
+    const s = lookups.sites(items.map((e) => e.trialSiteId));
+    return items.map((e) => ({
+      ...e,
+      patientName: p.get(e.patientId)?.name ?? null, patientCode: p.get(e.patientId)?.code ?? null,
+      trialCode: t.get(e.trialId)?.code ?? null, trialTitle: t.get(e.trialId)?.title ?? null, siteName: s.get(e.trialSiteId)?.name ?? null,
+    }));
+  };
 
   const getTrial = (id: string): TrialDto => {
     const t = mapRow<TrialDto>(db.prepare(`SELECT ${TRIAL_COLS} FROM trials WHERE id = ? AND deleted_at IS NULL`).get(id) as any);
@@ -55,12 +76,12 @@ export function createTrialService(ctx: Ctx) {
   const getSite = (trialId: string, siteId: string): SiteDto => {
     const s = mapRow<SiteDto>(db.prepare(`SELECT ${SITE_COLS} FROM trial_sites WHERE id = ? AND trial_id = ?`).get(siteId, trialId) as any);
     if (!s) throw AppError.notFound('Trial site');
-    return s;
+    return siteWithNames([s])[0]!;
   };
   const getEnrollment = (id: string): EnrollmentDto => {
     const e = mapRow<EnrollmentDto>(db.prepare(`SELECT ${ENR_COLS} FROM enrollments WHERE id = ?`).get(id) as any);
     if (!e) throw AppError.notFound('Enrollment');
-    return e;
+    return enrollmentWithNames([e])[0]!;
   };
   const assertInvestigator = (userId: string) => {
     const u = db.prepare('SELECT role, is_active FROM users WHERE id = ?').get(userId) as { role: string; is_active: number } | undefined;
@@ -153,7 +174,7 @@ export function createTrialService(ctx: Ctx) {
 
     listSites(trialId: string): SiteDto[] {
       getTrial(trialId);
-      return mapRows<SiteDto>(db.prepare(`SELECT ${SITE_COLS} FROM trial_sites WHERE trial_id = ? ORDER BY site_code`).all(trialId) as any[]);
+      return siteWithNames(mapRows<SiteDto>(db.prepare(`SELECT ${SITE_COLS} FROM trial_sites WHERE trial_id = ? ORDER BY site_code`).all(trialId) as any[]));
     },
 
     updateSite(trialId: string, siteId: string, patch: z.infer<typeof updateSiteBody>, actor: Actor): SiteDto {
@@ -207,7 +228,7 @@ export function createTrialService(ctx: Ctx) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM enrollments ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { createdAt: 'created_at', enrolledAt: 'enrolled_at' }, 'created_at');
       const rows = db.prepare(`SELECT ${ENR_COLS} FROM enrollments ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<EnrollmentDto>(rows), total };
+      return { items: enrollmentWithNames(mapRows<EnrollmentDto>(rows)), total };
     },
 
     updateEnrollmentStatus(id: string, status: EnrollmentStatus, actor: Actor): EnrollmentDto {

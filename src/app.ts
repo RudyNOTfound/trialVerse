@@ -13,6 +13,7 @@ import { integrityRouter } from './modules/integrity/routes';
 import { patientsRouter } from './modules/patients/routes';
 import { reimbursementsRouter } from './modules/reimbursements/routes';
 import { riskRouter } from './modules/risk/routes';
+import { statsRouter } from './modules/stats/routes';
 import { enrollmentsRouter, trialsRouter } from './modules/trials/routes';
 import { usersRouter } from './modules/users/routes';
 import { devRouter, visitsRouter } from './modules/visits/routes';
@@ -67,6 +68,7 @@ export function createApp(ctx: Ctx): Express {
   api.use('/actions', actionsRouter(ctx, s.actions));
   api.use('/risk', riskRouter(ctx, s.risk));
   api.use('/integrity', integrityRouter(ctx, s.integrity));
+  api.use('/stats', statsRouter(ctx, s.stats));
   if (ctx.config.otp.demoEnabled && !ctx.config.isProduction) api.use('/dev', devRouter(ctx, s.otp));
   app.use(API_PREFIX, api);
 

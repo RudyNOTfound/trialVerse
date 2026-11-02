@@ -10,6 +10,8 @@ export interface UserDto {
   lastLoginAt: string | null; createdAt: string; updatedAt: string;
 }
 
+export interface StaffDirectoryEntry { id: string; fullName: string; role: 'admin' | 'coordinator' | 'investigator'; isActive: boolean }
+
 const COLS = 'id, email, full_name, role, is_active, last_login_at, created_at, updated_at';
 
 export function createUserService(ctx: Ctx) {
@@ -58,6 +60,23 @@ export function createUserService(ctx: Ctx) {
       const ob = orderBy(q.sort, q.order, { createdAt: 'created_at', email: 'email', fullName: 'full_name' }, 'created_at');
       const rows = db.prepare(`SELECT ${COLS} FROM users ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
       return { items: mapRows<UserDto>(rows), total };
+    },
+
+    /**
+     * Minimal staff directory for operational pickers (principal investigator, assignee) and name display.
+     * Returns only id, fullName, role and isActive. Patient accounts and emails are never included.
+     */
+    directory(q: { page: number; pageSize: number; order: 'asc' | 'desc'; role?: string; search?: string; includeInactive: string }) {
+      const where: string[] = [`role IN ('admin', 'coordinator', 'investigator')`];
+      const params: unknown[] = [];
+      if (q.role) { where.push('role = ?'); params.push(q.role); }
+      if (q.includeInactive !== 'true') where.push('is_active = 1');
+      if (q.search) { where.push('full_name LIKE ?'); params.push(`%${q.search}%`); }
+      const w = `WHERE ${where.join(' AND ')}`;
+      const total = (db.prepare(`SELECT COUNT(*) c FROM users ${w}`).get(...params) as { c: number }).c;
+      const rows = db.prepare(`SELECT id, full_name, role, is_active FROM users ${w} ORDER BY full_name ${q.order === 'asc' ? 'ASC' : 'DESC'}, id LIMIT ? OFFSET ?`)
+        .all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
+      return { items: mapRows<StaffDirectoryEntry>(rows), total };
     },
 
     update(id: string, patch: { fullName?: string; role?: Role; isActive?: boolean }, actor: Actor): UserDto {

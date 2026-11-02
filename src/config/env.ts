@@ -23,6 +23,17 @@ const envSchema = z.object({
   OTP_TTL_SECONDS: z.coerce.number().int().min(10).max(3600).default(300),
   OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(20).default(5),
   DEMO_OTP_ENABLED: bool.default('false'),
+  /** Seconds a visit must wait before another OTP can be issued/resent. 0 disables the cooldown (tests only). */
+  OTP_RESEND_COOLDOWN_SECONDS: z.coerce.number().int().min(0).max(3600).default(60),
+  /** Max OTP issue requests per staff user per 15 minutes (on top of the per-visit cooldown and hourly cap). */
+  OTP_ISSUE_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
+  /** Max OTP verification requests per user per 15 minutes (on top of the per-OTP attempt lockout). */
+  OTP_VERIFY_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(60),
+  // ---- Email delivery of OTPs (Resend) ----
+  OTP_EMAIL_ENABLED: bool.default('false'),
+  RESEND_API_KEY: optionalString,
+  OTP_FROM_EMAIL: optionalString,
+  OTP_EMAIL_TIMEOUT_MS: z.coerce.number().int().min(1000).max(60000).default(10000),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(30),
   RATE_LIMIT_ENABLED: bool.default('true'),
   ML_RISK_ENABLED: bool.default('false'),
@@ -44,8 +55,10 @@ export interface AppConfig {
   databasePath: string;
   jwt: { secret: string; expiresIn: string };
   bcryptRounds: number;
-  otp: { pepper: string; length: number; ttlSeconds: number; maxAttempts: number; demoEnabled: boolean };
-  rateLimit: { enabled: boolean; authMax: number };
+  otp: { pepper: string; length: number; ttlSeconds: number; maxAttempts: number; demoEnabled: boolean; resendCooldownSeconds: number };
+  /** Email delivery of OTPs. When `enabled`, `apiKey` and `from` are guaranteed present (validated at load). */
+  email: { enabled: boolean; apiKey?: string; from?: string; timeoutMs: number };
+  rateLimit: { enabled: boolean; authMax: number; otpIssueMax: number; otpVerifyMax: number };
   ml: {
     risk: { enabled: boolean; url?: string };
     integrity: { enabled: boolean; url?: string };
@@ -79,6 +92,20 @@ export function loadConfig(source: Record<string, string | undefined> = process.
     if (e.DEMO_OTP_ENABLED) throw new Error('Invalid configuration: DEMO_OTP_ENABLED must be false in production');
     if (corsOrigins.includes('*')) throw new Error('Invalid configuration: CORS_ORIGINS must not be "*" in production');
   }
+  if (e.OTP_EMAIL_ENABLED) {
+    const missing = [!e.RESEND_API_KEY && 'RESEND_API_KEY', !e.OTP_FROM_EMAIL && 'OTP_FROM_EMAIL'].filter(Boolean);
+    if (missing.length) {
+      throw new Error(`Invalid configuration: OTP_EMAIL_ENABLED=true requires ${missing.join(' and ')}. Set them, or set OTP_EMAIL_ENABLED=false.`);
+    }
+    // Accepts "noreply@example.org" or "TrialVerse <noreply@example.org>".
+    if (!/^(?:[^<>\r\n]+<)?[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+>?$/.test(e.OTP_FROM_EMAIL!)) {
+      throw new Error('Invalid configuration: OTP_FROM_EMAIL must be an email address, optionally as "Name <address>"');
+    }
+    // Demo mode returns OTPs in API responses; it must never be combined with real delivery.
+    if (e.DEMO_OTP_ENABLED) {
+      throw new Error('Invalid configuration: DEMO_OTP_ENABLED cannot be combined with OTP_EMAIL_ENABLED=true (it would expose OTPs in API responses). Disable one.');
+    }
+  }
   if (e.JWT_SECRET === e.OTP_PEPPER) throw new Error('Invalid configuration: OTP_PEPPER must differ from JWT_SECRET');
   if (e.ML_RISK_ENABLED && !e.ML_RISK_URL) throw new Error('Invalid configuration: ML_RISK_URL required when ML_RISK_ENABLED=true');
   if (e.ML_INTEGRITY_ENABLED && !e.ML_INTEGRITY_URL) {
@@ -100,8 +127,10 @@ export function loadConfig(source: Record<string, string | undefined> = process.
       ttlSeconds: e.OTP_TTL_SECONDS,
       maxAttempts: e.OTP_MAX_ATTEMPTS,
       demoEnabled: e.DEMO_OTP_ENABLED,
+      resendCooldownSeconds: e.OTP_RESEND_COOLDOWN_SECONDS,
     },
-    rateLimit: { enabled: e.RATE_LIMIT_ENABLED, authMax: e.AUTH_RATE_LIMIT_MAX },
+    email: { enabled: e.OTP_EMAIL_ENABLED, apiKey: e.RESEND_API_KEY, from: e.OTP_FROM_EMAIL, timeoutMs: e.OTP_EMAIL_TIMEOUT_MS },
+    rateLimit: { enabled: e.RATE_LIMIT_ENABLED, authMax: e.AUTH_RATE_LIMIT_MAX, otpIssueMax: e.OTP_ISSUE_RATE_LIMIT_MAX, otpVerifyMax: e.OTP_VERIFY_RATE_LIMIT_MAX },
     ml: {
       risk: { enabled: e.ML_RISK_ENABLED, url: e.ML_RISK_URL },
       integrity: { enabled: e.ML_INTEGRITY_ENABLED, url: e.ML_INTEGRITY_URL },
