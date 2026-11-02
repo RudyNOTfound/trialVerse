@@ -16,6 +16,7 @@
 |---|---|---|---|
 | `GET` | `/api/v1/users` | List users | admin |
 | `POST` | `/api/v1/users` | Create a user with any role | admin |
+| `GET` | `/api/v1/users/directory` | Minimal staff directory for pickers and name display | admin, coordinator, investigator |
 | `GET` | `/api/v1/users/{id}` | Get a user | admin |
 | `PATCH` | `/api/v1/users/{id}` | Update name, role or active flag | admin |
 
@@ -29,6 +30,9 @@
 | `GET` | `/api/v1/patients/{id}` | Get a patient (patients: own record only) | admin, coordinator, investigator, patient (own) |
 | `PATCH` | `/api/v1/patients/{id}` | Update a patient / link a user account | admin, coordinator |
 | `DELETE` | `/api/v1/patients/{id}` | Soft-delete a patient with no enrollments | admin |
+| `GET` | `/api/v1/patients/linkable-accounts` | Registered patient accounts that are not yet linked to a patient record | admin, coordinator |
+| `POST` | `/api/v1/patients/{id}/account` | Link a registered portal account to this patient | admin, coordinator |
+| `DELETE` | `/api/v1/patients/{id}/account` | Remove the portal link from this patient | admin, coordinator |
 
 ## Trials
 
@@ -61,14 +65,15 @@
 | `POST` | `/api/v1/visits` | Schedule a visit for an enrollment | admin, coordinator |
 | `GET` | `/api/v1/visits/{id}` | Get a visit | admin, coordinator, investigator, patient (own) |
 | `PATCH` | `/api/v1/visits/{id}` | Edit a scheduled visit | admin, coordinator |
+| `GET` | `/api/v1/visits/{id}/history` | Visit history: status changes, edits and OTP events | admin, coordinator, investigator |
 | `POST` | `/api/v1/visits/{id}/status` | Mark a visit completed (requires OTP verification; investigator/admin), missed or cancelled | admin, coordinator, investigator |
 
 ## OTP
 
 | Method | Path | Summary | Roles |
 |---|---|---|---|
-| `POST` | `/api/v1/visits/{id}/otp` | Issue an OTP (supersedes any active one) | admin, coordinator, investigator |
-| `GET` | `/api/v1/visits/{id}/otp` | Latest OTP status (never the code) | admin, coordinator, investigator, patient (own) |
+| `POST` | `/api/v1/visits/{id}/otp` | Issue an OTP and email it to the participant (staff only) | admin, coordinator, investigator |
+| `GET` | `/api/v1/visits/{id}/otp` | Latest OTP status (never the code); includes `delivery` with the masked address and resend availability | admin, coordinator, investigator, patient (own) |
 | `POST` | `/api/v1/visits/{id}/otp/verify` | Verify an OTP and mark the visit verified | admin, coordinator, investigator, patient (own) |
 | `GET` | `/api/v1/dev/visits/{id}/otp` | DEV ONLY: demo OTP last issued by this server process | admin, coordinator, investigator |
 
@@ -124,4 +129,13 @@
 | `PATCH` | `/api/v1/integrity/alerts/{id}` | Acknowledge / resolve / dismiss / reopen an alert | admin, investigator |
 | `GET` | `/api/v1/integrity/rules` | Active engine and rule configuration | admin, investigator |
 
-**Total: 62 endpoints** (plus `GET /health`).
+## Stats
+
+| Method | Path | Summary | Roles |
+|---|---|---|---|
+| `GET` | `/api/v1/stats/operations` | Operational dashboard counts (patients, trials, enrollments, visits, actions, reimbursements) | admin, coordinator, investigator |
+| `GET` | `/api/v1/stats/visits` | Visit status counts and the next open visits | admin, coordinator, investigator |
+| `GET` | `/api/v1/stats/reimbursements` | Reimbursement counts by status/payment status and amounts by currency | admin, coordinator, investigator |
+| `GET` | `/api/v1/stats/sponsor` | Sponsor overview: trials, risk by level, integrity alerts, audit head | admin, investigator |
+
+**Total: 71 endpoints** (plus `GET /health`).

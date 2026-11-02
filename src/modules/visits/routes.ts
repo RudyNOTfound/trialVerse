@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
+import rateLimit from 'express-rate-limit';
 import type { Ctx } from '../../context';
 import { actorOf, authenticate, requireRole } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
@@ -6,12 +7,25 @@ import { AppError } from '../../utils/errors';
 import { asyncHandler, idParam, ok, paginated } from '../../utils/http';
 import type { PatientService } from '../patients/service';
 import type { OtpService } from './otp';
+import { createVisitHistory } from './history';
 import type { VisitService } from './service';
 import { createVisitBody, listVisitsQuery, updateVisitBody, verifyOtpBody, visitStatusBody } from './schemas';
 
 export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, patients: PatientService) {
   const r = Router();
+  const history = createVisitHistory(ctx);
   r.use(authenticate(ctx));
+
+  /** Per-user (not per-IP) limiter for OTP endpoints, layered on top of the per-visit cooldown, hourly cap and attempt lockout. */
+  const otpLimiter = (max: number): RequestHandler => ctx.config.rateLimit.enabled
+    ? rateLimit({
+        windowMs: 15 * 60 * 1000, limit: max, standardHeaders: true, legacyHeaders: false,
+        keyGenerator: (req) => req.actor?.id ?? 'anonymous',
+        handler: (_req, res) => res.status(429).json({ success: false, error: { code: 'RATE_LIMITED', message: 'Too many requests, try again later' } }),
+      })
+    : (_req, _res, next) => next();
+  const issueLimiter = otpLimiter(ctx.config.rateLimit.otpIssueMax);
+  const verifyLimiter = otpLimiter(ctx.config.rateLimit.otpVerifyMax);
 
   r.get('/', validate({ query: listVisitsQuery }), asyncHandler((req, res) => {
     const actor = actorOf(req);
@@ -26,6 +40,12 @@ export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, pa
   r.patch('/:id', requireRole('admin', 'coordinator'), validate({ params: idParam, body: updateVisitBody }), asyncHandler((req, res) =>
     ok(res, visits.update(req.valid!.params.id, req.body, actorOf(req)))));
 
+  // Staff only: the history is derived from the audit trail (actors, OTP failures), which participants do not see.
+  r.get('/:id/history', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam }), asyncHandler((req, res) => {
+    const visit = visits.get(req.valid!.params.id); // 404 if the visit does not exist
+    ok(res, history.list(visit.id));
+  }));
+
   // completed requires prior OTP verification (enforced by the state machine); only clinicians close visits.
   r.post('/:id/status', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam, body: visitStatusBody }), asyncHandler((req, res) => {
     const actor = actorOf(req);
@@ -33,10 +53,11 @@ export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, pa
     ok(res, visits.changeStatus(req.valid!.params.id, req.body.status, req.body.note, actor));
   }));
 
-  r.post('/:id/otp', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam }), asyncHandler((req, res) =>
-    ok(res, otp.issue(req.valid!.params.id, actorOf(req)), 201)));
+  // Staff only. Delivers the code by email before committing it; the response never contains the code (except demo mode, dev only).
+  r.post('/:id/otp', requireRole('admin', 'coordinator', 'investigator'), issueLimiter, validate({ params: idParam }), asyncHandler(async (req, res) =>
+    ok(res, await otp.issueAndDeliver(req.valid!.params.id, actorOf(req)), 201)));
   r.get('/:id/otp', validate({ params: idParam }), asyncHandler((req, res) => ok(res, otp.status(req.valid!.params.id, actorOf(req)))));
-  r.post('/:id/otp/verify', validate({ params: idParam, body: verifyOtpBody }), asyncHandler((req, res) =>
+  r.post('/:id/otp/verify', verifyLimiter, validate({ params: idParam, body: verifyOtpBody }), asyncHandler((req, res) =>
     ok(res, otp.verify(req.valid!.params.id, req.body.code, actorOf(req)))));
   return r;
 }

@@ -11,4 +11,4 @@ const out = readFileSync('.env.example', 'utf8')
   .replace(/^JWT_SECRET=.*$/m, `JWT_SECRET=${secret()}`)
   .replace(/^OTP_PEPPER=.*$/m, `OTP_PEPPER=${secret()}`);
 writeFileSync('.env', out, { mode: 0o600 });
-console.log('Created .env with generated JWT_SECRET and OTP_PEPPER (development defaults, DEMO_OTP_ENABLED=true).');
+console.log('Created .env with generated JWT_SECRET and OTP_PEPPER (development defaults: DEMO_OTP_ENABLED=true, OTP_EMAIL_ENABLED=false; see README to enable Resend email delivery).');

@@ -1,6 +1,7 @@
 import type { Ctx, Actor } from '../../context';
 import { AppError } from '../../utils/errors';
 import { inTransaction } from '../../utils/db';
+import { createLookups } from '../../utils/lookups';
 import { appendAuditEvent, rowToEvent, verifyChain, type ChainVerification } from './chain';
 import type { z } from 'zod';
 import type { auditListQuery } from './schemas';
@@ -9,6 +10,12 @@ export type AuditListQuery = z.infer<typeof auditListQuery>;
 
 export function createAuditService(ctx: Ctx) {
   const { db } = ctx;
+  const lookups = createLookups(db);
+  /** Display-only: the chain hashes actorId, never the name, so this cannot affect verification. */
+  const withActors = <T extends { actorId: string | null }>(events: T[]) => {
+    const u = lookups.users(events.map((e) => e.actorId));
+    return events.map((e) => ({ ...e, actorName: e.actorId ? u.get(e.actorId)?.name ?? null : null, actorRole: e.actorId ? u.get(e.actorId)?.role ?? null : null }));
+  };
   return {
     list(q: AuditListQuery) {
       const where: string[] = [];
@@ -25,13 +32,13 @@ export function createAuditService(ctx: Ctx) {
       const rows = db
         .prepare(`SELECT * FROM audit_logs ${w} ORDER BY seq ${q.order === 'asc' ? 'ASC' : 'DESC'} LIMIT ? OFFSET ?`)
         .all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: rows.map(rowToEvent), total };
+      return { items: withActors(rows.map(rowToEvent)), total };
     },
 
     get(id: string) {
       const row = db.prepare('SELECT * FROM audit_logs WHERE id = ?').get(id) as any;
       if (!row) throw AppError.notFound('Audit event');
-      return rowToEvent(row);
+      return withActors([rowToEvent(row)])[0]!;
     },
 
     /** Verifies the chain and records the attempt (success or failure) in the chain itself. */

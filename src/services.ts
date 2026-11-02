@@ -6,6 +6,7 @@ import { createIntegrityService } from './modules/integrity/service';
 import { createPatientService } from './modules/patients/service';
 import { createReimbursementService } from './modules/reimbursements/service';
 import { createRiskService } from './modules/risk/service';
+import { createStatsService } from './modules/stats/service';
 import { createTrialService } from './modules/trials/service';
 import { createUserService } from './modules/users/service';
 import { createOtpService } from './modules/visits/otp';
@@ -28,6 +29,7 @@ export function createServices(ctx: Ctx) {
     actions: createActionService(ctx),
     risk: createRiskService(ctx),
     integrity: createIntegrityService(ctx),
+    stats: createStatsService(ctx),
   };
 }
 export type Services = ReturnType<typeof createServices>;

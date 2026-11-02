@@ -23,6 +23,14 @@ export const updatePatientBody = createPatientBody
   })
   .refine((v) => Object.keys(v).length > 0, 'At least one field is required');
 
+export const linkAccountBody = z.object({ userId: z.string().uuid() });
+
+export const linkableAccountsQuery = z.object({
+  ...pageQuery,
+  order: z.enum(['asc', 'desc']).default('desc'),
+  search: z.string().trim().max(100).optional(),
+});
+
 export const listPatientsQuery = z.object({
   ...pageQuery,
   search: z.string().max(100).optional(),

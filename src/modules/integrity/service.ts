@@ -5,6 +5,7 @@ import { CONTRACT_VERSION, type AuditEventSummary, type IntegrityFinding, type I
 import { sha256 } from '../../utils/crypto';
 import { inTransaction, mapRow, mapRows, nowIso, orderBy } from '../../utils/db';
 import { AppError } from '../../utils/errors';
+import { createLookups, entityLabels } from '../../utils/lookups';
 import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
 import { appendAuditEvent, rowToEvent, verifyChain } from '../audit/chain';
 import type { listAlertsQuery, scanBody } from './schemas';
@@ -15,6 +16,8 @@ export interface IntegrityAlertDto {
   id: string; ruleId: string; entityType: string; entityId: string; severity: string; status: AlertStatus; message: string;
   details: Record<string, unknown>; source: string; resolvedBy: string | null; resolvedAt: string | null; resolutionNote: string | null;
   detectedAt: string; createdAt: string; updatedAt: string;
+  /** Embedded display names (additive, read-only). */
+  resolvedByName?: string | null; entityName?: string | null;
 }
 
 export const ALERT_TRANSITIONS: TransitionMap<AlertStatus> = {
@@ -39,10 +42,17 @@ export interface ScanSummary {
 export function createIntegrityService(ctx: Ctx) {
   const { db } = ctx;
 
+  const lookups = createLookups(db);
+  const withNames = (items: IntegrityAlertDto[]): IntegrityAlertDto[] => {
+    const u = lookups.users(items.map((a) => a.resolvedBy));
+    const labels = entityLabels(db, items);
+    return items.map((a) => ({ ...a, resolvedByName: a.resolvedBy ? u.get(a.resolvedBy)?.name ?? null : null, entityName: labels.get(`${a.entityType}:${a.entityId}`) ?? null }));
+  };
+
   const get = (id: string): IntegrityAlertDto => {
     const a = mapRow<IntegrityAlertDto>(db.prepare('SELECT * FROM integrity_alerts WHERE id = ?').get(id) as any, ['details']);
     if (!a) throw AppError.notFound('Integrity alert');
-    return a;
+    return withNames([a])[0]!;
   };
 
   /** Assembles the engine input (also the ML contract payload) from the database. */
@@ -127,7 +137,7 @@ export function createIntegrityService(ctx: Ctx) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM integrity_alerts ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { detectedAt: 'detected_at', severity: SEVERITY_RANK }, 'detected_at');
       const rows = db.prepare(`SELECT * FROM integrity_alerts ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<IntegrityAlertDto>(rows, ['details']), total };
+      return { items: withNames(mapRows<IntegrityAlertDto>(rows, ['details'])), total };
     },
 
     updateStatus(id: string, status: AlertStatus, note: string | undefined, actor: Actor): IntegrityAlertDto {
