@@ -70,8 +70,8 @@ const ROUTES: Array<[Method, string, Doc]> = [
   ['get', '/visits/{id}/history', { tag: 'Visits', summary: 'Visit history: status changes, edits and OTP events', roles: STAFF, description: 'Read-only projection of the audit trail for one visit, oldest first, with actor names. Exposes a fixed allow-list of fields (no hashes, no raw metadata, never an OTP). Participants receive 403.' }],
   ['patch', '/visits/{id}', { tag: 'Visits', summary: 'Edit a scheduled visit', roles: `${A}, ${C}`, body: updateVisitBody }],
   ['post', '/visits/{id}/status', { tag: 'Visits', summary: 'Mark a visit completed (requires OTP verification; investigator/admin), missed or cancelled', roles: STAFF, body: visitStatusBody }],
-  ['post', '/visits/{id}/otp', { tag: 'OTP', summary: 'Issue an OTP (supersedes any active one)', roles: STAFF, status: 201, description: 'Only an HMAC of the OTP is stored. The response includes `demoOtp` ONLY when DEMO_OTP_ENABLED=true outside production.' }],
-  ['get', '/visits/{id}/otp', { tag: 'OTP', summary: 'Latest OTP status (never the code)', roles: `${STAFF}, ${P} (own)` }],
+  ['post', '/visits/{id}/otp', { tag: 'OTP', summary: 'Issue an OTP and email it to the participant (staff only)', roles: STAFF, status: 201, description: 'Generates a code, emails it to the participant\'s linked portal account, and only then commits it (previous OTP superseded, visit -> `otp_pending`, audited). Only a keyed hash is stored and **the code is never returned**; the response carries `delivery` (`channel`, `status`, masked `recipientHint`, `cooldownSeconds`, `resendAvailableAt`). If the email cannot be sent nothing is committed. Errors: 409 `OTP_NO_RECIPIENT` (no linked / deactivated portal account), 429 `OTP_COOLDOWN` (60 s per visit, with `Retry-After`), 429 `RATE_LIMITED`, 502 `OTP_DELIVERY_FAILED`, 503 `OTP_DELIVERY_UNAVAILABLE` (no delivery channel configured; never falls back to showing the code). Development only: with `DEMO_OTP_ENABLED=true` and email off, `demoOtp` is returned instead of sending an email (cannot be combined with email delivery and is refused in production).' }],
+  ['get', '/visits/{id}/otp', { tag: 'OTP', summary: 'Latest OTP status (never the code); includes `delivery` with the masked address and resend availability', roles: `${STAFF}, ${P} (own)` }],
   ['post', '/visits/{id}/otp/verify', { tag: 'OTP', summary: 'Verify an OTP and mark the visit verified', roles: `${STAFF}, ${P} (own)`, body: verifyOtpBody, description: 'Errors: 400 OTP_INVALID (with remainingAttempts), 410 OTP_EXPIRED, 423 OTP_LOCKED, 409 OTP_NOT_ACTIVE (reuse / none issued). Every outcome is audited.' }],
   ['get', '/dev/visits/{id}/otp', { tag: 'OTP', summary: 'DEV ONLY: demo OTP last issued by this server process', roles: STAFF, description: 'Route exists only when DEMO_OTP_ENABLED=true and NODE_ENV is not production.' }],
 
@@ -187,7 +187,7 @@ export function buildOpenApiDocument(config: AppConfig) {
             error: {
               type: 'object',
               properties: {
-                code: { type: 'string', enum: ['VALIDATION_ERROR', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'INVALID_STATE_TRANSITION', 'OTP_INVALID', 'OTP_EXPIRED', 'OTP_LOCKED', 'OTP_NOT_ACTIVE', 'RATE_LIMITED', 'INTERNAL_ERROR'] },
+                code: { type: 'string', enum: ['VALIDATION_ERROR', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'INVALID_STATE_TRANSITION', 'OTP_INVALID', 'OTP_EXPIRED', 'OTP_LOCKED', 'OTP_NOT_ACTIVE', 'OTP_NO_RECIPIENT', 'OTP_COOLDOWN', 'OTP_DELIVERY_FAILED', 'OTP_DELIVERY_UNAVAILABLE', 'RATE_LIMITED', 'INTERNAL_ERROR'] },
                 message: { type: 'string' }, details: {}, requestId: { type: 'string' },
               },
             },

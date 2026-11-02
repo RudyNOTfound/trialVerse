@@ -72,8 +72,8 @@
 
 | Method | Path | Summary | Roles |
 |---|---|---|---|
-| `POST` | `/api/v1/visits/{id}/otp` | Issue an OTP (supersedes any active one) | admin, coordinator, investigator |
-| `GET` | `/api/v1/visits/{id}/otp` | Latest OTP status (never the code) | admin, coordinator, investigator, patient (own) |
+| `POST` | `/api/v1/visits/{id}/otp` | Issue an OTP and email it to the participant (staff only) | admin, coordinator, investigator |
+| `GET` | `/api/v1/visits/{id}/otp` | Latest OTP status (never the code); includes `delivery` with the masked address and resend availability | admin, coordinator, investigator, patient (own) |
 | `POST` | `/api/v1/visits/{id}/otp/verify` | Verify an OTP and mark the visit verified | admin, coordinator, investigator, patient (own) |
 | `GET` | `/api/v1/dev/visits/{id}/otp` | DEV ONLY: demo OTP last issued by this server process | admin, coordinator, investigator |
 

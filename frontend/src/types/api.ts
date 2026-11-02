@@ -123,6 +123,15 @@ export interface Visit {
 }
 
 export type OtpState = 'active' | 'used' | 'locked' | 'expired' | 'superseded';
+/** How the code reached the participant. Never contains the code. */
+export interface OtpDelivery {
+  channel: 'email' | 'demo' | 'none';
+  /** Masked address of the participant's portal account, e.g. `a***@example.org`. */
+  recipientHint: string | null;
+  cooldownSeconds: number;
+  /** When another code may be sent; null if there is no cooldown or nothing was sent yet. */
+  resendAvailableAt: string | null;
+}
 export interface OtpStatus {
   id: string;
   visitId: string;
@@ -132,13 +141,15 @@ export interface OtpStatus {
   expiresAt: string;
   usedAt: string | null;
   createdAt: string;
+  delivery: OtpDelivery;
 }
 export interface OtpIssueResult {
   otpId: string;
   visitId: string;
   expiresAt: string;
   maxAttempts: number;
-  /** Present only when the backend runs with DEMO_OTP_ENABLED=true. */
+  delivery?: OtpDelivery & { status: 'sent' | 'demo' | null };
+  /** Development only: present only when the backend runs with DEMO_OTP_ENABLED=true and email delivery off. */
   demoOtp?: string;
 }
 export interface DemoOtp { code: string; expiresAt: string }

@@ -64,6 +64,13 @@ src/utils/        format, roles, transitions (UI hints mirroring backend state m
 
 Not used by the UI: `GET /audit/:id` and the single-record `GET`s that lists already cover.
 
+## Email OTP (Phase 4)
+
+- **Staff** click **Issue OTP**; the code is emailed to the participant's linked account and a toast confirms the (masked) address. The panel then shows expiry, attempts left and a **Resend code** button that is disabled with a live countdown during the 60 s cooldown. Staff never see the code, and the verify box is hidden in email mode (the participant verifies in their own portal).
+- **Participants** see "We emailed you a 6-digit code" with the masked address, an expiry countdown and attempts left. The visit page polls every 8 s while waiting, so the code box appears as soon as staff send it. There is **no participant resend button**: only staff can issue or resend, so a code cannot be requested from home and used to verify attendance remotely. Locked/expired/used states tell them to ask clinic staff for a new code.
+- Errors shown to staff: no linked/active account, cooldown, delivery failed (generic, nothing issued), delivery not configured.
+- **Development only:** when the backend runs in demo mode (`DEMO_OTP_ENABLED=true`, email off) the amber "Development only" panel appears; it is never shown when email delivery is on.
+
 ## Visit verification workflow
 
 Scheduled → staff **Issue OTP** → (dev) reveal demo code → participant or staff **Verify** → visit `verified` → investigator/admin **Mark completed**.

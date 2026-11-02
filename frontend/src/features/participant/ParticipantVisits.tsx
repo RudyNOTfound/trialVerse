@@ -49,7 +49,11 @@ function Section({ title, visits }: { title: string; visits: Visit[] }) {
 
 export function ParticipantVisitDetail() {
   const { id = '' } = useParams();
-  const visit = useQuery({ queryKey: ['visit', id], queryFn: () => visitsApi.get(id) });
+  // While staff have not yet sent the code (or it is pending), poll so the code box appears without a manual refresh.
+  const visit = useQuery({
+    queryKey: ['visit', id], queryFn: () => visitsApi.get(id),
+    refetchInterval: (q) => (q.state.data && ['scheduled', 'otp_pending'].includes(q.state.data.status) ? 8_000 : false),
+  });
   if (visit.isLoading) return <Skeleton className="h-72" />;
   if (visit.error || !visit.data) return <Card><ErrorState error={visit.error} onRetry={() => visit.refetch()} /></Card>;
   const v = visit.data;

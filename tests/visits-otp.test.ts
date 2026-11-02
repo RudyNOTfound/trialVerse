@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { hashOtp } from '../src/utils/crypto';
 import { loadConfig } from '../src/config/env';
-import { TEST_ENV, bearer, makeHarness, makeScenario } from './helpers';
+import { EMAIL_ENV, FakeEmailProvider, TEST_ENV, bearer, makeHarness, makeScenario } from './helpers';
 
 describe('visit creation', () => {
   const h = makeHarness();
@@ -69,7 +69,8 @@ describe('OTP generation and verification', () => {
   });
 
   it('does not return the OTP when demo mode is off, and never exposes a hash', async () => {
-    const off = makeHarness({ env: { DEMO_OTP_ENABLED: 'false' } });
+    // Production-like: demo mode off, OTPs delivered by email (fake provider). Without a delivery channel issuing now fails closed.
+    const off = makeHarness({ env: EMAIL_ENV, emailProvider: new FakeEmailProvider() });
     const s2 = await makeScenario(off);
     const res = await off.api.post(`/api/v1/visits/${s2.visit.id}/otp`).set(bearer(s2.coord));
     expect(res.status).toBe(201);
