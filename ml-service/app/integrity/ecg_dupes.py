@@ -24,6 +24,11 @@ class PhashCache:
         self.hits = self.misses = 0
 
     def get(self, path: Path, hash_size: int) -> "imagehash.ImageHash":
+        return self.get_info(path, hash_size)[0]
+
+    def get_info(self, path: Path, hash_size: int) -> Tuple["imagehash.ImageHash", float]:
+        """(perceptual hash, grey-level standard deviation). The deviation tells a real tracing from a blank/uniform image,
+        whose hash carries no information and would match any other blank image."""
         st = path.stat()
         key = (str(path), st.st_mtime_ns, st.st_size, hash_size)
         if key in self._d:
@@ -32,11 +37,12 @@ class PhashCache:
             return self._d[key]
         self.misses += 1
         with Image.open(path) as im:
-            h = imagehash.phash(im.convert("L"), hash_size=hash_size)
-        self._d[key] = h
+            grey = im.convert("L")
+            info = (imagehash.phash(grey, hash_size=hash_size), float(np.asarray(grey, dtype=np.float64).std()))
+        self._d[key] = info
         if len(self._d) > self.size:
             self._d.popitem(last=False)
-        return h
+        return info
 
 
 def _resolve(root: Path, rel: str) -> Optional[Path]:
@@ -67,7 +73,9 @@ def detect_ecg_duplicates(ecgs: List[Dict[str, Any]], root: Path, cfg: EcgConfig
                 problem = "file not found"
             else:
                 try:
-                    h = cache.get(path, cfg.hash_size)
+                    h, spread = cache.get_info(path, cfg.hash_size)
+                    if spread < cfg.min_pixel_std:      # blank/uniform: all such images share one hash, so a match proves nothing
+                        h, problem = None, "image has no usable content (uniform pixels), so it cannot be compared"
                 except Exception as exc:  # corrupt / not an image
                     problem = f"file is not a readable image ({type(exc).__name__})"
         if h is None:
