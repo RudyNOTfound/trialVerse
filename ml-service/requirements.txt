@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic
 numpy
-pandas
+pandas==2.3.3
 scikit-learn==1.6.1
 xgboost
 shap

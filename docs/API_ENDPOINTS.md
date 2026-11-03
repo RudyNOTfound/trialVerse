@@ -77,6 +77,24 @@
 | `POST` | `/api/v1/visits/{id}/otp/verify` | Verify an OTP and mark the visit verified | admin, coordinator, investigator, patient (own) |
 | `GET` | `/api/v1/dev/visits/{id}/otp` | DEV ONLY: demo OTP last issued by this server process | admin, coordinator, investigator |
 
+## Capture
+
+| Method | Path | Summary | Roles |
+|---|---|---|---|
+| `POST` | `/api/v1/patients/{patientId}/measurements` | Record the measurements taken at a visit (one set per visit) | admin, coordinator, investigator |
+| `GET` | `/api/v1/patients/{patientId}/measurements` | List a patient's measurements | admin, coordinator, investigator, patient (own) |
+| `GET` | `/api/v1/measurements/{id}` | Get a measurement set (id = visit id) | admin, coordinator, investigator, patient (own) |
+| `POST` | `/api/v1/patients/{patientId}/ecgs` | Register an ECG reference for a visit (one per visit) | admin, coordinator, investigator |
+| `GET` | `/api/v1/patients/{patientId}/ecgs` | List a patient's ECG references | admin, coordinator, investigator, patient (own) |
+| `GET` | `/api/v1/ecgs/{id}` | Get an ECG reference | admin, coordinator, investigator, patient (own) |
+| `POST` | `/api/v1/patients/{patientId}/reminders` | Log a reminder sent to a participant | admin, coordinator |
+| `GET` | `/api/v1/patients/{patientId}/reminders` | List a patient's reminders | admin, coordinator, investigator, patient (own) |
+| `GET` | `/api/v1/reminders/{id}` | Get a reminder | admin, coordinator, investigator, patient (own) |
+| `PATCH` | `/api/v1/reminders/{id}` | Record the outcome of a reminder: acknowledged or missed | admin, coordinator |
+| `POST` | `/api/v1/patients/{patientId}/adverse-events` | Report an adverse event | admin, coordinator, investigator, patient (own) |
+| `GET` | `/api/v1/patients/{patientId}/adverse-events` | List a patient's adverse-event reports | admin, coordinator, investigator, patient (own) |
+| `GET` | `/api/v1/adverse-events/{id}` | Get an adverse-event report | admin, coordinator, investigator, patient (own) |
+
 ## Audit
 
 | Method | Path | Summary | Roles |
@@ -138,4 +156,4 @@
 | `GET` | `/api/v1/stats/reimbursements` | Reimbursement counts by status/payment status and amounts by currency | admin, coordinator, investigator |
 | `GET` | `/api/v1/stats/sponsor` | Sponsor overview: trials, risk by level, integrity alerts, audit head | admin, investigator |
 
-**Total: 71 endpoints** (plus `GET /health`).
+**Total: 84 endpoints** (plus `GET /health`).

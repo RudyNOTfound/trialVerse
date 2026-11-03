@@ -8,6 +8,7 @@ import { buildOpenApiDocument } from './docs/openapi';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import { actionsRouter } from './modules/actions/routes';
 import { auditRouter } from './modules/audit/routes';
+import { captureRouter } from './modules/capture/routes';
 import { authRouter } from './modules/auth/routes';
 import { integrityRouter } from './modules/integrity/routes';
 import { patientsRouter } from './modules/patients/routes';
@@ -69,6 +70,7 @@ export function createApp(ctx: Ctx): Express {
   api.use('/risk', riskRouter(ctx, s.risk));
   api.use('/integrity', integrityRouter(ctx, s.integrity));
   api.use('/stats', statsRouter(ctx, s.stats));
+  api.use('/', captureRouter(ctx, s.capture));
   if (ctx.config.otp.demoEnabled && !ctx.config.isProduction) api.use('/dev', devRouter(ctx, s.otp));
   app.use(API_PREFIX, api);
 
