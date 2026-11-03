@@ -11,7 +11,7 @@
  *    reused untouched, a missing one is created with a real bcrypt hash of the demo password, so every account can log in;
  *  - nothing existing is updated or deleted; a real conflict (another trial already using the code, another patient already using a
  *    subject code, an account with the wrong role) is reported as an error instead of being merged.
- * Synthetic data only. Participants get opaque ids/pseudonymous names from the generator.
+ * Refuses to run in production (see `demoDataAllowed`). Synthetic data only. Participants get opaque ids/pseudonymous names from the generator.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,6 +20,7 @@ import bcrypt from 'bcryptjs';
 import type { DB } from '../utils/db';
 import { inTransaction } from '../utils/db';
 import { appendAuditEvent } from '../modules/audit/chain';
+import { demoDataAllowed } from '../config/env';
 import { DEMO_PASSWORD } from './seed';
 
 type Row = Record<string, string>;
@@ -83,6 +84,11 @@ export interface ImportResult {
 }
 
 export function importMlDemo(db: DB, opts: ImportOptions): ImportResult {
+  // First statement, before any file or database access: synthetic demo data (with demo logins) must never be written in production,
+  // whoever calls this function. The CLI has its own check as well (defence in depth); there is deliberately no option to override this.
+  if (!demoDataAllowed()) {
+    throw new Error(`ML demo import is disabled in production (NODE_ENV=${process.env.NODE_ENV ?? ''}). It writes synthetic data and demo accounts.`);
+  }
   const dir = path.join(opts.dataDir, 'demo');
   const sitesCsv = readCsv(path.join(dir, 'sites.csv'));
   const participants = readCsv(path.join(dir, 'participants.csv'));

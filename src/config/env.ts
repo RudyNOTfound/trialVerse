@@ -87,6 +87,17 @@ function parseJson(name: string, raw: string | undefined): unknown {
   }
 }
 
+/**
+ * Whether synthetic demo data may be written (seeding / ML demo import) in this environment.
+ * Fails CLOSED: only an unset NODE_ENV, 'development' or 'test' is allowed. 'production' is refused, and so is anything unrecognised
+ * ('Production', 'prod', 'staging', ...), which `loadConfig` would reject as invalid anyway: a typo must never open the door.
+ * Independent of `loadConfig` on purpose, so it can be asked by code that has no AppConfig (e.g. `importMlDemo`).
+ */
+export function demoDataAllowed(source: Record<string, string | undefined> = process.env): boolean {
+  const v = source.NODE_ENV;
+  return v === undefined || v === '' || v === 'development' || v === 'test';
+}
+
 /** Parses and validates environment variables. Throws a readable error when invalid. */
 export function loadConfig(source: Record<string, string | undefined> = process.env): AppConfig {
   const parsed = envSchema.safeParse(source);
