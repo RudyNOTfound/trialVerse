@@ -259,13 +259,56 @@ python3 -m venv ~/.venv-ml && ~/.venv-ml/bin/pip install -r ml-service/requireme
 # 2. dataset + service
 cd ml-service && python -m app.data_generation.generate_all
 ML_API_KEY=<test key> ML_ECG_DIR=$PWD/generated_data uvicorn app.main:app --port 8011
-# 3. demo data into the backend database (idempotent, additive), then use the app normally
-npm run ml:demo-import
+# 3. demo data into the backend database, then use the app normally. Best order: npm run seed:reset && npm run seed, then:
+npm run ml:demo-import   # same demo logins as the seed (admin@trialguard.demo, ... / DemoPass#2025); safe to repeat
+#    Every imported record has a deterministic UUID (mlDemoId in src/seed/mlDemoImport.ts); the generator's id ('P-A-001') is the
+#    patient's subject_code. Nothing existing is changed or deleted; real conflicts (another GLU-301 trial, a taken subject code) are errors.
 # 4. live tests (skipped unless ML_LIVE_URL and ML_LIVE_DATA are set)
 ML_LIVE_URL=http://127.0.0.1:8011 ML_LIVE_KEY=<test key> ML_LIVE_DATA=$PWD/ml-service/generated_data \
   ML_LIVE_LOG=<service log file> npx vitest run tests/live
 ```
 
-### Not implemented in this phase
-REST endpoints for reminders, adverse-event reports, visit measurements and ECG registration (the tables exist and the
-payload builders read them; they are filled by the demo import). Optional `risk_assessments.engine_extras` (decision D7) was not added.
+### Capturing the model inputs over HTTP (Phase 2)
+These endpoints fill the tables the payload builders already read, so a captured record is part of the very next risk assessment or
+integrity scan. They accept only what migration 002 can store: no invented fields, statuses, units or scales. All require a bearer
+token; request/response schemas are in Swagger (`GET /api/docs`, tag **Capture**) and the route table in `docs/API_ENDPOINTS.md`.
+The envelope is the usual `{ success, data, meta? }`; errors are 400 (validation), 401 (no/invalid token), 403 (role, or a participant using
+somebody else's patient id), 404 (unknown record, or a visit/enrollment that is not this patient's; a participant asking for somebody
+else's *record* also gets 404), 409 (duplicate, wrong state).
+
+| Data | Endpoints | Write | Read | Lands in | Reaches the model as |
+|---|---|---|---|---|---|
+| Measurements | `POST/GET /patients/{patientId}/measurements`, `GET /measurements/{id}` | admin, coordinator, investigator | staff, participant (own) | `visit_measurements` | `trialData.visits[]`: `performedAt`, `enteredAt`, `systolicBp`, `diastolicBp`, `heartRate`, `weightKg`, `glucoseMgDl` |
+| ECG references | `POST/GET /patients/{patientId}/ecgs`, `GET /ecgs/{id}` | admin, coordinator, investigator | staff, participant (own, without the storage path) | `visit_ecgs` | `trialData.visits[].ecgRecordId` and `trialData.ecgs[]` (`imageRef` = `fileRef`) |
+| Reminders | `POST/GET /patients/{patientId}/reminders`, `GET/PATCH /reminders/{id}` | admin, coordinator | staff, participant (own) | `visit_reminders` | risk feature `missed_reminders` |
+| Adverse events | `POST/GET /patients/{patientId}/adverse-events`, `GET /adverse-events/{id}` | staff, participant (own) | staff, participant (own) | `adverse_event_reports` | risk feature `side_effects_reported` |
+
+* **Measurements.** One set per visit (the measurement id is the visit id; a second one is 409). Units are fixed and never converted
+  (BP mmHg, heart rate bpm, weight kg, glucose mg/dL). Values only have to be positive: an implausible value stays storable, flagging it
+  is the integrity engine's job. `enteredAt`/`enteredBy` are set by the server (a client-supplied entry time could be forged and the
+  engine compares it with `performedAt`; sending either is a 400). Not for `missed`/`cancelled` visits.
+* **ECG references.** The project stores a *reference*: `fileRef` is relative to the shared `ML_ECG_DIR` (absolute paths, `..`,
+  backslashes and empty segments are rejected; the file is not opened here, a missing file becomes an `ecg.file_unavailable` finding at
+  scan time). Several records may use the same `fileRef` on purpose: re-used ECGs are what the Python duplicate detection finds.
+  One per visit. Optional `fileSha256` (64 lowercase hex, stays in the backend) and `recordedAt`.
+* **Reminders.** Created as `sent` (`channel`: sms | ivr | call | other; give `enrollmentId` or `visitId`), resolved **once** by
+  `PATCH` to `acknowledged` (optional `acknowledgedAt`, default now, not before `sentAt`, not in the future) or `missed`. A resolved
+  reminder is final (409 `INVALID_STATE_TRANSITION`). Only resolved reminders count: with none resolved `missed_reminders` is unknown
+  (null), the backend does not send an incomplete participant, and the baseline engine answers. Participants cannot write reminders (they
+  could otherwise lower their own risk), and investigators do not run reminder operations.
+* **Adverse events.** The schema records *that* an event was reported and when; it has no severity, type or free text, so none is
+  accepted, and there is no update endpoint (append-only; the audit trail is the history). A participant may report for themselves only.
+* **Scoping.** The application has no per-staff site assignment, so staff roles are trial-wide. What is enforced: the patient in the URL
+  must exist, a participant can only use their own patient id (403 otherwise), and every visit/enrollment in a body must belong to that
+  patient (404 otherwise).
+* **Audit.** `measurement.recorded`, `ecg.registered`, `reminder.created`, `reminder.outcome_recorded` (from/to) and
+  `adverse_event.reported`, with ids and field *names* only: measurement values never enter the hash-chained audit metadata.
+
+Tests: `tests/capture.test.ts` (HTTP validation, roles, isolation, audit, and the payload tests with in-process recording models, which
+show what the backend would send) and `tests/live/ml-live.test.ts` ("data captured through the capture APIs ...", which runs the same
+steps against the real FastAPI service).
+
+### Not implemented
+Optional `risk_assessments.engine_extras` (decision D7) was not added. There is no edit or delete for captured measurements, ECG
+references or adverse events (corrections would need a decided audit model), and no upload of ECG image bytes (the project shares a
+directory with the Python service and stores references).

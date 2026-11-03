@@ -9,6 +9,10 @@ import { createPatientBody, linkableAccountsQuery, linkAccountBody, listPatients
 import {
   createReimbursementBody, listReimbursementsQuery, noteBody, paymentBody, rejectBody, updateReimbursementBody,
 } from '../modules/reimbursements/schemas';
+import {
+  createAdverseEventBody, createEcgBody, createMeasurementBody, createReminderBody, listAdverseEventsQuery, listEcgsQuery, listMeasurementsQuery,
+  listRemindersQuery, updateReminderBody,
+} from '../modules/capture/schemas';
 import { assessBody, listAssessmentsQuery } from '../modules/risk/schemas';
 import { sponsorStatsQuery, visitStatsQuery } from '../modules/stats/schemas';
 import {
@@ -74,6 +78,21 @@ const ROUTES: Array<[Method, string, Doc]> = [
   ['get', '/visits/{id}/otp', { tag: 'OTP', summary: 'Latest OTP status (never the code); includes `delivery` with the masked address and resend availability', roles: `${STAFF}, ${P} (own)` }],
   ['post', '/visits/{id}/otp/verify', { tag: 'OTP', summary: 'Verify an OTP and mark the visit verified', roles: `${STAFF}, ${P} (own)`, body: verifyOtpBody, description: 'Errors: 400 OTP_INVALID (with remainingAttempts), 410 OTP_EXPIRED, 423 OTP_LOCKED, 409 OTP_NOT_ACTIVE (reuse / none issued). Every outcome is audited.' }],
   ['get', '/dev/visits/{id}/otp', { tag: 'OTP', summary: 'DEV ONLY: demo OTP last issued by this server process', roles: STAFF, description: 'Route exists only when DEMO_OTP_ENABLED=true and NODE_ENV is not production.' }],
+
+  // ---- ML input capture (feeds the risk features and the integrity trialData; see docs/ML_INTEGRATION.md)
+  ['post', '/patients/{patientId}/measurements', { tag: 'Capture', summary: 'Record the measurements taken at a visit (one set per visit)', roles: STAFF, body: createMeasurementBody, status: 201, description: 'Units are fixed and never converted: BP mmHg, heart rate bpm, weight kg, glucose mg/dL. `enteredAt`/`enteredBy` are set by the server. Values are only checked to be positive: implausible values stay storable (the integrity engine flags them). 409 if the visit already has a measurement set or was missed/cancelled; 404 if the visit is not this patient\'s. The measurement id is the visit id.' }],
+  ['get', '/patients/{patientId}/measurements', { tag: 'Capture', summary: 'List a patient\'s measurements', roles: `${STAFF}, ${P} (own)`, query: listMeasurementsQuery, paginated: true }],
+  ['get', '/measurements/{id}', { tag: 'Capture', summary: 'Get a measurement set (id = visit id)', roles: `${STAFF}, ${P} (own)` }],
+  ['post', '/patients/{patientId}/ecgs', { tag: 'Capture', summary: 'Register an ECG reference for a visit (one per visit)', roles: STAFF, body: createEcgBody, status: 201, description: 'Stores a REFERENCE (`fileRef`, relative to the shared ML_ECG_DIR; absolute paths and `..` are rejected), never image bytes. The file is not opened here: a missing file becomes an `ecg.file_unavailable` finding at scan time. A `fileRef` that other records already use is accepted on purpose (re-used ECGs are what the integrity engine detects). Participants do not see `fileRef`/`fileSha256`.' }],
+  ['get', '/patients/{patientId}/ecgs', { tag: 'Capture', summary: 'List a patient\'s ECG references', roles: `${STAFF}, ${P} (own)`, query: listEcgsQuery, paginated: true }],
+  ['get', '/ecgs/{id}', { tag: 'Capture', summary: 'Get an ECG reference', roles: `${STAFF}, ${P} (own)` }],
+  ['post', '/patients/{patientId}/reminders', { tag: 'Capture', summary: 'Log a reminder sent to a participant', roles: `${A}, ${C}`, body: createReminderBody, status: 201, description: 'Created with outcome `sent`. Give `enrollmentId` or `visitId` (a visit determines its enrollment). Resolve it with `PATCH /reminders/{id}`.' }],
+  ['get', '/patients/{patientId}/reminders', { tag: 'Capture', summary: 'List a patient\'s reminders', roles: `${STAFF}, ${P} (own)`, query: listRemindersQuery, paginated: true }],
+  ['get', '/reminders/{id}', { tag: 'Capture', summary: 'Get a reminder', roles: `${STAFF}, ${P} (own)` }],
+  ['patch', '/reminders/{id}', { tag: 'Capture', summary: 'Record the outcome of a reminder: acknowledged or missed', roles: `${A}, ${C}`, body: updateReminderBody, description: '`sent` -> `acknowledged` | `missed`, once; a resolved reminder is final (409 INVALID_STATE_TRANSITION). Only resolved reminders count towards `missed_reminders`. Audited.' }],
+  ['post', '/patients/{patientId}/adverse-events', { tag: 'Capture', summary: 'Report an adverse event', roles: `${STAFF}, ${P} (own)`, body: createAdverseEventBody, status: 201, description: 'The database records THAT an event was reported and when (`side_effects_reported`); it has no severity, type or free-text field, so none is accepted. Append-only: there is no update endpoint.' }],
+  ['get', '/patients/{patientId}/adverse-events', { tag: 'Capture', summary: 'List a patient\'s adverse-event reports', roles: `${STAFF}, ${P} (own)`, query: listAdverseEventsQuery, paginated: true }],
+  ['get', '/adverse-events/{id}', { tag: 'Capture', summary: 'Get an adverse-event report', roles: `${STAFF}, ${P} (own)` }],
 
   ['get', '/audit', { tag: 'Audit', summary: 'List audit events (filterable)', roles: `${A}, ${I}`, query: auditListQuery, paginated: true }],
   ['get', '/audit/verify', { tag: 'Audit', summary: 'Verify the entire hash chain; the attempt itself is recorded', roles: `${A}, ${I}`, description: 'Returns `valid`, `errors[]` (type: sequence_gap | prev_hash_mismatch | hash_mismatch | head_mismatch) and the chain head. Responds 200 even when invalid.' }],
@@ -167,7 +186,7 @@ export function buildOpenApiDocument(config: AppConfig) {
         '**Audit chain:** a tamper-*evident* hash chain; it detects modification/deletion but does not make the database immutable.',
     },
     servers: [{ url: '/api/v1', description: `${config.env} server` }],
-    tags: ['Auth', 'Users', 'Patients', 'Trials', 'Enrollments', 'Visits', 'OTP', 'Audit', 'Reimbursements', 'Actions', 'Risk', 'Integrity', 'Stats'].map((name) => ({ name })),
+    tags: ['Auth', 'Users', 'Patients', 'Trials', 'Enrollments', 'Visits', 'OTP', 'Capture', 'Audit', 'Reimbursements', 'Actions', 'Risk', 'Integrity', 'Stats'].map((name) => ({ name })),
     paths,
     components: {
       securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },

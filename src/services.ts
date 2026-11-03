@@ -2,6 +2,7 @@ import type { Ctx } from './context';
 import { createActionService } from './modules/actions/service';
 import { createAuditService } from './modules/audit/service';
 import { createAuthService } from './modules/auth/service';
+import { createCaptureService } from './modules/capture/service';
 import { createIntegrityService } from './modules/integrity/service';
 import { createPatientService } from './modules/patients/service';
 import { createReimbursementService } from './modules/reimbursements/service';
@@ -21,6 +22,7 @@ export function createServices(ctx: Ctx) {
     users,
     auth: createAuthService(ctx, users),
     patients,
+    capture: createCaptureService(ctx, patients),
     trials: createTrialService(ctx),
     visits,
     otp: createOtpService(ctx, visits),

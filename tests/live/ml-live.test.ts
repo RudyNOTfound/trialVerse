@@ -15,7 +15,8 @@ import { CONTRACT_VERSION, type IntegrityScanRequest } from '../../src/ml/contra
 import { HttpIntegrityModel, HttpRiskModel } from '../../src/ml/httpModels';
 import { buildTrialData } from '../../src/modules/integrity/trialData';
 import { buildFeatures } from '../../src/modules/risk/features';
-import { importMlDemo, readCsv } from '../../src/seed/mlDemoImport';
+import { importMlDemo, mlDemoId, readCsv } from '../../src/seed/mlDemoImport';
+import { DEMO_PASSWORD, seed } from '../../src/seed/seed';
 import { makeHarness } from '../helpers';
 
 const URL = process.env.ML_LIVE_URL;
@@ -24,9 +25,15 @@ const DATA = process.env.ML_LIVE_DATA ?? '';
 const LOG = process.env.ML_LIVE_LOG;
 const live = !!URL && !!DATA && fs.existsSync(`${DATA}/demo/visits.csv`);
 
-/** Ground truth injected by the data generator (Site C only). */
+/** The importer gives every record a deterministic UUID; the generator's own ids ('P-A-001', 'V-C-...') live on in subject_code / the CSVs. */
+const P = (src: string) => mlDemoId('patient', src);
+const V = (src: string) => mlDemoId('visit', src);
+const E = (src: string) => mlDemoId('ecg', src);
+/** Ground truth injected by the data generator (Site C only). `gtSource` = generator ids, `gt` = the UUIDs the backend and Python see. */
 const truth = live ? readCsv(`${DATA}/metadata/fraud_ground_truth.csv`) : [];
-const gt = (type: string) => new Set(truth.filter((r) => r.anomaly_type === type).map((r) => r.visit_id!));
+const gtSource = (type: string) => new Set(truth.filter((r) => r.anomaly_type === type).map((r) => r.visit_id!));
+const gt = (type: string) => new Set([...gtSource(type)].map(V));
+const siteCVisits = new Set(live ? readCsv(`${DATA}/demo/visits.csv`).filter((r) => r.site_id === 'SITE-C').map((r) => V(r.visit_id!)) : []);
 
 function fresh(env: Record<string, string> = {}, imp: { documentedOtpExceptionVisitIds?: string[] } = {}) {
   const h = makeHarness({
@@ -35,7 +42,7 @@ function fresh(env: Record<string, string> = {}, imp: { documentedOtpExceptionVi
       ML_TIMEOUT_MS: '10000', ML_INTEGRITY_TIMEOUT_MS: '60000', ...env,
     },
   });
-  const r = importMlDemo(h.ctx.db, { dataDir: DATA, ...imp });
+  const r = importMlDemo(h.ctx.db, { dataDir: DATA, bcryptRounds: 4, ...imp });
   return { h, r, actor: { id: r.users.admin, role: 'admin' as const } };
 }
 const alerts = (h: ReturnType<typeof fresh>['h'], where = '1=1', ...p: unknown[]) =>
@@ -63,7 +70,7 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
     const { h, actor } = fresh();
     const before = logSize();
     const now = Date.now();
-    const result = await h.s.risk.assess({ entityType: 'patient', entityId: 'P-A-001' }, actor);
+    const result = await h.s.risk.assess({ entityType: 'patient', entityId: P('P-A-001') }, actor);
     expect(result.fallback).toEqual({ used: false, reason: null });
     expect(result.engine.name).toBe('retention-dropout-risk');
     expect(result.engine.version).toMatch(/^1\.0\.0\+logistic_regression\./);
@@ -73,10 +80,10 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
     expect(result.explanation).toMatch(/retention model category/);       // the model's own scale is labelled, never relabelled
     // independent proof: Python logged exactly one 200 for this call, and answering it directly with the same features gives the same score
     expect(pythonRequestsSince(before)).toEqual([{ path: '/v1/risk/predict', status: 200 }]);
-    const features = buildFeatures(h.ctx.db, 'patient', 'P-A-001', now);
+    const features = buildFeatures(h.ctx.db, 'patient', P('P-A-001'), now);
     expect(features).toMatchObject({ site_id: 'SITE-A', distance_km: 40, daily_wage_worker: 1 });
     const direct = await new HttpRiskModel({ baseUrl: URL!, timeoutMs: 10000, apiKey: KEY })
-      .predict({ contractVersion: CONTRACT_VERSION, requestId: 'direct-1', entityType: 'patient', entityId: 'P-A-001', featureSchemaVersion: '2', features, requestedAt: new Date(now).toISOString() });
+      .predict({ contractVersion: CONTRACT_VERSION, requestId: 'direct-1', entityType: 'patient', entityId: P('P-A-001'), featureSchemaVersion: '2', features, requestedAt: new Date(now).toISOString() });
     expect(direct.contractVersion).toBe('1.1');
     expect(Math.round(direct.score * 10) / 10).toBe(result.score);
     expect(direct.retentionRiskLevel).toMatch(/low|medium|high/);
@@ -85,7 +92,7 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
   it('RISK: a participant from every site is scored by the model (each site maps to a known category)', async () => {
     const { h, actor } = fresh();
     for (const id of ['P-A-001', 'P-B-001', 'P-C-001', 'P-D-001', 'P-E-001']) {
-      const r = await h.s.risk.assess({ entityType: 'patient', entityId: id }, actor);
+      const r = await h.s.risk.assess({ entityType: 'patient', entityId: P(id) }, actor);
       expect(r.fallback.used, id).toBe(false);
       expect(r.engine.name, id).toBe('retention-dropout-risk');
     }
@@ -95,7 +102,7 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
     const { h, actor } = fresh();
     h.ctx.db.prepare(`UPDATE trial_sites SET ml_site_category = NULL WHERE site_code = 'SITE-A'`).run();
     const before = logSize();
-    const r = await h.s.risk.assess({ entityType: 'patient', entityId: 'P-A-001' }, actor);
+    const r = await h.s.risk.assess({ entityType: 'patient', entityId: P('P-A-001') }, actor);
     expect(r.fallback).toMatchObject({ used: true, reason: 'invalid_request: missing required features: site_id' });
     expect(r.engine.name).toBe('baseline-rules');
     expect(pythonRequestsSince(before)).toEqual([]);                       // nothing reached Python
@@ -105,7 +112,7 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
     const { h, actor } = fresh();
     h.ctx.db.prepare(`UPDATE trial_sites SET ml_site_category = 'SITE-Z' WHERE site_code = 'SITE-A'`).run();
     const before = logSize();
-    const r = await h.s.risk.assess({ entityType: 'patient', entityId: 'P-A-001' }, actor);
+    const r = await h.s.risk.assess({ entityType: 'patient', entityId: P('P-A-001') }, actor);
     expect(r.fallback.used).toBe(true);
     expect(r.fallback.reason).toBe('model_error: Model service rejected the request (HTTP 422: unknown_site_category)');
     expect(r.engine.name).toBe('baseline-rules');
@@ -116,7 +123,7 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
   it('RISK: wrong ML_API_KEY -> HTTP 401 -> baseline, with a reason that does not leak the key', async () => {
     const { h, actor } = fresh({ ML_API_KEY: 'definitely-not-the-key' });
     const before = logSize();
-    const r = await h.s.risk.assess({ entityType: 'patient', entityId: 'P-A-001' }, actor);
+    const r = await h.s.risk.assess({ entityType: 'patient', entityId: P('P-A-001') }, actor);
     expect(r.fallback).toMatchObject({ used: true });
     expect(r.fallback.reason).toMatch(/^unauthorized: Model service rejected the credentials \(HTTP 401/);
     expect(r.fallback.reason).not.toContain('definitely-not-the-key');
@@ -125,7 +132,7 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
 
   it('RISK: Python service unavailable -> baseline fallback, the API call itself still succeeds', async () => {
     const { h, actor } = fresh({ ML_RISK_URL: 'http://127.0.0.1:1' });
-    const r = await h.s.risk.assess({ entityType: 'patient', entityId: 'P-A-001' }, actor);
+    const r = await h.s.risk.assess({ entityType: 'patient', entityId: P('P-A-001') }, actor);
     expect(r.fallback).toMatchObject({ used: true });
     expect(r.fallback.reason).toMatch(/^unavailable: Model service is unreachable/);
     expect(r.engine.name).toBe('baseline-rules');
@@ -166,7 +173,7 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
     const text = JSON.stringify(h.ctx.db.prepare('SELECT message FROM integrity_alerts').all()).toLowerCase();
     expect(text).not.toMatch(/fraudulent|committed fraud|is fraud|guilty|cheat/);
     // honest sites produce no site-level findings and no multi-signal visits
-    expect([...flagged].every((id) => id.startsWith('V-C-'))).toBe(true);
+    expect([...flagged].every((id) => siteCVisits.has(id))).toBe(true);
   });
 
   it('INTEGRITY: findings are persisted de-duplicated, so scanning again raises nothing new', async () => {
@@ -207,14 +214,15 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
   });
 
   it('OTP EXCEPTION: a documented exception reaches Python as otpVerified=false + reason (evidence only); undocumented ones stay undocumented', async () => {
-    const documented = [...gt('unverified_batch_late_night_entry')].slice(0, 3);
-    const { h, actor } = fresh({}, { documentedOtpExceptionVisitIds: documented });
+    const documentedSource = [...gtSource('unverified_batch_late_night_entry')].slice(0, 3);
+    const documented = documentedSource.map(V);
+    const { h, actor } = fresh({}, { documentedOtpExceptionVisitIds: documentedSource });
     const td = buildTrialData(h.ctx.db, h.ctx.db.prepare('SELECT id FROM trials').get() ? (h.ctx.db.prepare('SELECT id FROM trials').get() as { id: string }).id : '', new Date()).trialData!;
     const byId = new Map(td.visits.map((v) => [v.visitId, v]));
     for (const id of documented) expect(byId.get(id)).toMatchObject({ status: 'completed', otpVerified: false, otpExceptionReason: 'device_offline' });
     const undocumented = [...gt('unverified_batch_late_night_entry')].find((id) => !documented.includes(id))!;
     expect(byId.get(undocumented)).toMatchObject({ otpVerified: false, otpExceptionReason: null });
-    expect(byId.get('V-A-001-01')).toMatchObject({ otpVerified: true, otpExceptionReason: null });
+    expect(byId.get(V('V-A-001-01'))).toMatchObject({ otpVerified: true, otpExceptionReason: null });
     await h.s.integrity.scan({ windowHours: 168 }, actor);
     // a documented exception never hides or lowers the finding: all 18 are still flagged
     expect(new Set(alerts(h, `rule_id = 'visit.multiple_integrity_signals'`).map((a) => a.entity_id))).toEqual(gt('unverified_batch_late_night_entry'));
@@ -223,8 +231,8 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
 
   it('ECG: missing, unreadable and path-traversal image references become ecg.file_unavailable findings; the scan carries on', async () => {
     const { h, actor } = fresh();
-    h.ctx.db.prepare(`UPDATE visit_ecgs SET file_ref = 'ecgs/does_not_exist.png' WHERE id = 'ECGR-0001'`).run();
-    h.ctx.db.prepare(`UPDATE visit_ecgs SET file_ref = '../../../../etc/passwd' WHERE id = 'ECGR-0002'`).run();
+    h.ctx.db.prepare(`UPDATE visit_ecgs SET file_ref = 'ecgs/does_not_exist.png' WHERE id = '${E('ECGR-0001')}'`).run();
+    h.ctx.db.prepare(`UPDATE visit_ecgs SET file_ref = '../../../../etc/passwd' WHERE id = '${E('ECGR-0002')}'`).run();
     const before = logSize();
     const scan = await h.s.integrity.scan({ windowHours: 168 }, actor);
     expect(scan.fallback.used).toBe(false);
@@ -310,12 +318,12 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
 
   it('FALLBACK vs SUCCESS is distinguishable: ML off -> baseline with no fallback flag; ML on -> model with no fallback flag', async () => {
     const off = fresh({ ML_RISK_ENABLED: 'false', ML_INTEGRITY_ENABLED: 'false' });
-    const r = await off.h.s.risk.assess({ entityType: 'patient', entityId: 'P-A-001' }, off.actor);
+    const r = await off.h.s.risk.assess({ entityType: 'patient', entityId: P('P-A-001') }, off.actor);
     expect(r).toMatchObject({ engine: { name: 'baseline-rules' }, fallback: { used: false } });
     const s = await off.h.s.integrity.scan({ windowHours: 168 }, off.actor);
     expect(s).toMatchObject({ engine: { name: 'baseline-integrity-rules' }, fallback: { used: false } });
     const on = fresh();
-    expect((await on.h.s.risk.assess({ entityType: 'patient', entityId: 'P-A-001' }, on.actor)).engine.name).toBe('retention-dropout-risk');
+    expect((await on.h.s.risk.assess({ entityType: 'patient', entityId: P('P-A-001') }, on.actor)).engine.name).toBe('retention-dropout-risk');
   });
 
   it('a site without a timezone is left out of the scan (with its participants/visits/ECGs) and reported, instead of making Python reject the call', async () => {
@@ -330,4 +338,103 @@ describe.skipIf(!live)('LIVE: TypeScript backend -> Python ML service (contract 
     expect(JSON.parse(audit.metadata).sitesSkippedNoTimezone).toEqual([r.sites['SITE-A']]);
     expect(alerts(h, `rule_id = 'visit.multiple_integrity_signals'`)).toHaveLength(18);     // Site C unaffected
   });
+
+  // ---------------------------------------------------------------- the whole path over HTTP, on the unified demo database
+  it('HTTP + LIVE: log in as a demo account, assess imported Ramesh by UUID through POST /risk/assessments -> trained model, HIGH', async () => {
+    const { h } = fresh();
+    const login = await h.api.post('/api/v1/auth/login').send({ email: 'admin@trialguard.demo', password: DEMO_PASSWORD });
+    expect(login.status).toBe(200);
+    const auth = { Authorization: `Bearer ${login.body.data.token}` };
+    const before = logSize();
+    const res = await h.api.post('/api/v1/risk/assessments').set(auth).send({ entityType: 'patient', entityId: P('P-A-001') });
+    expect(res.status).toBe(201);
+    expect(res.body.data).toMatchObject({ entityId: P('P-A-001'), level: 'high', fallback: { used: false }, engine: { name: 'retention-dropout-risk' } });
+    expect(res.body.data.score).toBeGreaterThan(60);                         // Person B's reference value for Ramesh is 69.2
+    expect(res.body.data.score).toBeLessThan(80);
+    expect(pythonRequestsSince(before)).toEqual([{ path: '/v1/risk/predict', status: 200 }]);   // Python itself logged exactly one 200
+    // the stored assessment is readable by its own UUID through the API
+    expect((await h.api.get(`/api/v1/risk/assessments/${res.body.data.id}`).set(auth)).status).toBe(200);
+  });
+
+  it('HTTP + LIVE: seed, then import, then POST /integrity/scans for the ML trial -> the Site C anomalies, and a repeat raises nothing new', async () => {
+    const h = makeHarness({ env: { ML_RISK_ENABLED: 'true', ML_RISK_URL: URL!, ML_INTEGRITY_ENABLED: 'true', ML_INTEGRITY_URL: URL!, ML_API_KEY: KEY, ML_ECG_DIR: DATA, ML_TIMEOUT_MS: '10000', ML_INTEGRITY_TIMEOUT_MS: '60000' } });
+    await seed(h.ctx);                                                       // the regular demo data first (its own risk/integrity run uses the same ML settings)
+    const seededAlerts = alerts(h).length;
+    const r = importMlDemo(h.ctx.db, { dataDir: DATA, bcryptRounds: 4 });
+    const login = await h.api.post('/api/v1/auth/login').send({ email: 'admin@trialguard.demo', password: DEMO_PASSWORD });
+    const auth = { Authorization: `Bearer ${login.body.data.token}` };
+    const before = logSize();
+    const scan = await h.api.post('/api/v1/integrity/scans').set(auth).send({ windowHours: 168, trialId: r.trialId });
+    expect(scan.status).toBe(201);
+    expect(scan.body.data.fallback).toEqual({ used: false });
+    expect(scan.body.data.coverage).toMatchObject({ trialsScanned: 1, sitesSkippedNoTimezone: [] });
+    expect(pythonRequestsSince(before)).toEqual([{ path: '/v1/integrity/predict', status: 200 }]);
+    const mine = alerts(h).slice(seededAlerts);
+    const flagged = new Set(mine.filter((a) => a.rule_id === 'visit.multiple_integrity_signals').map((a) => a.entity_id));
+    expect(flagged).toEqual(gt('unverified_batch_late_night_entry'));        // exactly the 18 injected Site C visits, by UUID
+    const clusterVisits = new Set(mine.filter((a) => a.rule_id === 'ecg.duplicate_image').flatMap((a) => JSON.parse(a.details).visitIds as string[]));
+    expect(clusterVisits).toEqual(gt('reused_ecg_image'));
+    expect(new Set(mine.filter((a) => a.entity_type === 'site').map((a) => a.entity_id))).toEqual(new Set([r.sites['SITE-C']]));
+    const again = await h.api.post('/api/v1/integrity/scans').set(auth).send({ windowHours: 168, trialId: r.trialId });
+    // trial findings (visit / site / ECG) are de-duplicated. On a seeded database the admin's own activity (login, assessment, the first scan)
+    // can legitimately move the audit-activity distribution, so an `ml.actor_activity_outlier` user finding is the one thing that may appear.
+    const newTrialFindings = (again.body.data.alerts as Array<{ ruleId: string; entityType: string }>).filter((a) => a.entityType !== 'user');
+    expect(newTrialFindings).toEqual([]);
+    // importing again changes nothing and the scan is still stable
+    expect(importMlDemo(h.ctx.db, { dataDir: DATA, bcryptRounds: 4 }).alreadyImported).toBe(true);
+  }, 120000);
+
+  // ---------------------------------------------------------------- Phase 2: data captured through the new APIs reaches the real model
+  it('HTTP + LIVE: data captured through the capture APIs changes what the real Python service scores and finds', async () => {
+    const { h } = fresh();
+    const login = await h.api.post('/api/v1/auth/login').send({ email: 'admin@trialguard.demo', password: DEMO_PASSWORD });
+    const auth = { Authorization: `Bearer ${login.body.data.token}` };
+    const call = (m: 'post' | 'patch' | 'get', u: string, body?: object) => h.api[m](`/api/v1${u}`).set(auth).send(body ?? {});
+    const assess = async (src: string) => (await call('post', '/risk/assessments', { entityType: 'patient', entityId: P(src) })).body.data;
+
+    // (1) a MISSED reminder logged and resolved over HTTP raises Ramesh's score from the trained model
+    const ramesh = P('P-A-001'); const rEnrol = mlDemoId('enrollment', 'P-A-001');
+    const s0 = await assess('P-A-001');
+    expect(s0).toMatchObject({ engine: { name: 'retention-dropout-risk' }, fallback: { used: false } });
+    const rem = await call('post', `/patients/${ramesh}/reminders`, { enrollmentId: rEnrol, channel: 'sms', sentAt: new Date(Date.now() - 3600_000).toISOString() });
+    expect(rem.status).toBe(201);
+    expect((await call('patch', `/reminders/${rem.body.data.id}`, { outcome: 'missed' })).status).toBe(200);
+    const s1 = await assess('P-A-001');
+    expect(s1.fallback.used).toBe(false);
+    expect(s1.score).toBeGreaterThan(s0.score);
+    expect(buildFeatures(h.ctx.db, 'patient', ramesh).missed_reminders).toBe(Number(readCsv(`${DATA}/demo/participants.csv`).find((x) => x.participant_id === 'P-A-001')!.missed_reminders) + 1);
+
+    // (2) an adverse event reported over HTTP flips side_effects_reported for a participant who had none, and the model's answer changes
+    const quiet = readCsv(`${DATA}/demo/participants.csv`).find((x) => x.side_effects_reported === '0' && x.missed_reminders !== '' && x.dropped_out === '0')!.participant_id!;
+    const q0 = await assess(quiet);
+    const ae = await call('post', `/patients/${P(quiet)}/adverse-events`, { enrollmentId: mlDemoId('enrollment', quiet) });
+    expect(ae.status).toBe(201);
+    const q1 = await assess(quiet);
+    expect(buildFeatures(h.ctx.db, 'patient', P(quiet)).side_effects_reported).toBe(1);
+    expect(q1.fallback.used).toBe(false);
+    expect(q1.score).not.toBe(q0.score);
+
+    // (3) a new visit, measurement and ECG reference captured over HTTP are sent to the integrity engine; re-using an image that
+    //     another participant's visit already has makes Python cluster the NEW visit with it (the existing duplicate detection, unchanged)
+    // (the dataset's enrollments are all 'completed' and the API correctly refuses new visits for those; make Ramesh an ongoing participant in this throwaway database)
+    h.ctx.db.prepare(`UPDATE enrollments SET status = 'enrolled' WHERE id = ?`).run(rEnrol);
+    const nv = await call('post', '/visits', { enrollmentId: rEnrol, visitType: 'Captured', scheduledAt: new Date(Date.now() - 7200_000).toISOString() });
+    expect(nv.status).toBe(201);
+    const meas = await call('post', `/patients/${ramesh}/measurements`, { visitId: nv.body.data.id, performedAt: new Date(Date.now() - 7000_000).toISOString(), systolicBp: 121, diastolicBp: 79, heartRate: 70 });
+    expect(meas.status).toBe(201);
+    const reused = readCsv(`${DATA}/demo/ecg_metadata.csv`)[0]!;                       // belongs to another participant's visit
+    const ecg = await call('post', `/patients/${ramesh}/ecgs`, { visitId: nv.body.data.id, fileRef: reused.image_file });
+    expect(ecg.status).toBe(201);
+    const before = logSize();
+    const trialId = (h.ctx.db.prepare('SELECT id FROM trials').get() as { id: string }).id;
+    const scan = await call('post', '/integrity/scans', { windowHours: 168, trialId });
+    expect(scan.status).toBe(201);
+    expect(scan.body.data.fallback).toEqual({ used: false });
+    expect(pythonRequestsSince(before)).toEqual([{ path: '/v1/integrity/predict', status: 200 }]);
+    const td = buildTrialData(h.ctx.db, trialId, new Date()).trialData!;
+    expect(td.visits.find((v) => v.visitId === nv.body.data.id)).toMatchObject({ systolicBp: 121, ecgRecordId: ecg.body.data.id });
+    const cluster = alerts(h, `rule_id = 'ecg.duplicate_image'`).map((a) => JSON.parse(a.details).visitIds as string[]).find((ids) => ids.includes(nv.body.data.id));
+    expect(cluster, 'the newly captured ECG is clustered with the visit that already used the image').toBeDefined();
+    expect(cluster).toContain(V(reused.visit_id!));
+  }, 120000);
 });
