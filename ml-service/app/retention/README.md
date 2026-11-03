@@ -109,7 +109,7 @@ gets actions for factors the model also flags. Priority is `high` if risk is hig
 ## Ramesh demo (`reports/retention/ramesh_demo.{md,json}`)
 
 Features are read from `generated_data/demo/participants.csv` (name lookup, nothing hard-coded): SITE-A (Roorkee), 52 y, 40 km, daily-wage worker, 2 missed reminders, 12-day reimbursement delay, side effects reported, 1 missed visit.
-Model output: **risk score 70.0 / 100 — HIGH** (cohort baseline 25.5). Top factors: missed reminders (+10.5), reimbursement delay (+10.4), daily-wage (+8.7), distance (+8.5), side effects (+7.8). Recommended: reminder escalation [high],
+Model output (Phase 3 CSV inputs, 12-day delay): **risk score 70.0 / 100 — HIGH** (69.2 in the integrated path, where the backend derives an 11.6-day delay from his 7 paid claims) (cohort baseline 25.5). Top factors: missed reminders (+10.5), reimbursement delay (+10.4), daily-wage (+8.7), distance (+8.5), side effects (+7.8). Recommended: reminder escalation [high],
 reimbursement priority incl. instant payout [high], teleconsultation/home visit, flexible scheduling, clinician follow-up, coordinator follow-up [medium]. The score is whatever the trained model returns; nothing is forced.
 
 ## Input validation

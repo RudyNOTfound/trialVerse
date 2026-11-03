@@ -27,3 +27,14 @@ Legend — **FINAL**: settled, implement as written · **A-CONFIRM**: option cho
 No endpoint path changes · no new auth · no change to fallback kinds · no `fraud_probability` · hash-chain verification stays in
 TypeScript · implausible measurements are findings, not request errors · missing required retention inputs are refused, never defaulted ·
 no timezone is ever assumed · unmapped site is never mapped to a known one · missing OTP is never auto-classified as fraud.
+
+## Open questions recorded in Phase 6.2 (not decided here; no behaviour was changed for any of them)
+
+| ID | Question | Current behaviour | Why it is left alone |
+|---|---|---|---|
+| Q1 | Should `featureSchemaVersion` be enforced on `/v1/risk/predict` (reject anything but `"2"`)? | Ignored: acceptance depends only on the presence and validity of the features | The spec names `"2"` but states no rejection rule; rejecting would change what the backend may send. Needs Person A's agreement. |
+| Q2 | Should `requestedAt` be parsed/validated? | Not parsed; Python does not use it | Unused by the model; validating it could only add failures. |
+| Q3 | `imageRef` with `..`, an absolute path or `""`: HTTP 422 or a finding? | 200 with `ecg.file_unavailable` (MEDIUM), file never read | Spec §4.4 says "rejected" without a code; a finding keeps the rest of the scan usable. Confirm with Person A. |
+| Q4 | Legacy region aliases (`Asia/Calcutta`) as site timezone | Accepted (they resolve to the correct rules) | Only fixed-offset `Etc/GMT±N` names are rejected (D15). |
+| Q5 | Duplicate `siteCode` across different `siteId`s | Accepted | Not specified; `siteId` is the key. |
+| Q6 | Participants with no resolved reminder (`missed_reminders = null`) can never be scored by the model | Refused with 422, backend falls back to baseline | Intended by D4 (null, never 0). Scoring them would need an imputation policy and a model change that nobody has decided. |
