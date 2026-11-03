@@ -45,6 +45,7 @@ class EcgConfig:
     identical_max_distance: int = 0                 # Hamming distance treated as identical
     near_max_distance: int = 4                      # <= this = near-identical. Phase 3 keeps distinct ECGs >= 8 apart
     max_pairs_reported: int = 50
+    min_pixel_std: float = 2.0                      # grey-level std below this = blank/uniform image, not comparable (real ECGs: 35-91)
     cache_size: int = 4096                         # >= the 2,000-ECG request cap, so repeat scans never re-decode unchanged files
 
 
