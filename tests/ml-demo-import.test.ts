@@ -4,9 +4,14 @@
  * Express app + supertest). No Python service is needed: the model-dependent assertions (Ramesh HIGH, Site C findings) live in
  * tests/live/ml-live.test.ts, which runs the same importer against the real FastAPI service.
  */
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import os from 'node:os';
+import path from 'node:path';
+import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { demoDataAllowed } from '../src/config/env';
+import { openDatabase } from '../src/db/connection';
 import { DEMO_PASSWORD, seed } from '../src/seed/seed';
 import { ML_DEMO_TRIAL_CODE, importMlDemo, mlDemoId, readCsv } from '../src/seed/mlDemoImport';
 import { buildFeatures } from '../src/modules/risk/features';
@@ -191,5 +196,100 @@ describe.skipIf(!have)('ML demo importer', () => {
     expect(scan.status).toBe(201);
     expect(scan.body.data.engine).toBeTruthy();
     expect(scan.body.data.fallback.used).toBe(false);                        // ML integrity is simply off here: the baseline answers, no fallback
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Production guard: the import must be impossible in production, through the exported function AND through the CLI.
+// The guard itself is never mocked; tests change the real process.env.NODE_ENV and always restore it.
+// ---------------------------------------------------------------------------------------------------------------------
+const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+function withNodeEnv<T>(value: string | undefined, fn: () => T): T {
+  if (value === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = value;
+  try { return fn(); } finally { if (ORIGINAL_NODE_ENV === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = ORIGINAL_NODE_ENV; }
+}
+afterEach(() => { expect(process.env.NODE_ENV).toBe(ORIGINAL_NODE_ENV); });   // no test may leak an environment change into the next
+
+describe('ML demo import: production guard', () => {
+  it('demoDataAllowed fails closed: only unset / development / test are allowed', () => {
+    for (const ok of [undefined, '', 'development', 'test']) expect(demoDataAllowed({ NODE_ENV: ok }), String(ok)).toBe(true);
+    for (const no of ['production', 'Production', 'PRODUCTION', ' production', 'prod', 'staging', 'live']) expect(demoDataAllowed({ NODE_ENV: no }), no).toBe(false);
+    expect(demoDataAllowed({})).toBe(true);
+  });
+
+  it.skipIf(!have)('importMlDemo() called directly in production is rejected before touching the database or the data files', async () => {
+    const fresh = makeHarness();
+    const seeded = makeHarness(); await seed(seeded.ctx);
+    for (const h of [fresh, seeded]) {
+      const before = snapshot(h);
+      const schema = h.ctx.db.prepare(`SELECT COUNT(*) c FROM sqlite_master`).get();
+      expect(() => withNodeEnv('production', () => imp(h))).toThrow(/ML demo import is disabled in production/);
+      // the guard runs first: even with a data directory that does not exist, the answer is the production error, not ENOENT
+      expect(() => withNodeEnv('production', () => importMlDemo(h.ctx.db, { dataDir: '/definitely/not/here' }))).toThrow(/disabled in production/);
+      expect(snapshot(h)).toEqual(before);                                           // no row created or changed (accounts, trial, patients, audit events)
+      expect(h.ctx.db.prepare(`SELECT COUNT(*) c FROM sqlite_master`).get()).toEqual(schema);
+      expect(h.ctx.db.prepare('SELECT COUNT(*) c FROM trials WHERE code = ?').get(ML_DEMO_TRIAL_CODE)).toEqual({ c: 0 });
+    }
+    expect(count(fresh, 'users')).toBe(0);                                          // in particular, no demo login was created
+  });
+
+  it.skipIf(!have)('unrecognised environment names are refused too (a typo such as "Production" must not enable it)', () => {
+    const h = makeHarness(); const before = snapshot(h);
+    for (const v of ['Production', 'prod', 'staging']) expect(() => withNodeEnv(v, () => imp(h)), v).toThrow(/disabled in production/);
+    expect(snapshot(h)).toEqual(before);
+  });
+
+  it.skipIf(!have)('development, test and unset environments still import, and the guard does not disturb idempotency or conflict handling', () => {
+    for (const v of ['development', 'test', undefined]) {
+      const h = makeHarness();
+      const r = withNodeEnv(v, () => imp(h));
+      expect(r.participants, String(v)).toBe(300);
+      expect(withNodeEnv(v, () => imp(h)).alreadyImported, String(v)).toBe(true);
+    }
+    // a rejected production attempt leaves nothing behind, so a later legitimate import is unaffected
+    const h = makeHarness();
+    expect(() => withNodeEnv('production', () => imp(h))).toThrow();
+    expect(imp(h).participants).toBe(300);
+  });
+
+  describe.skipIf(!have)('the CLI (scripts/import-ml-demo.ts), run as a real process', () => {
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-demo-cli-'));
+    afterAll(() => fs.rmSync(work, { recursive: true, force: true }));
+    const tsx = path.join(process.cwd(), 'node_modules', 'tsx', 'dist', 'cli.mjs');
+    const script = path.join(process.cwd(), 'scripts', 'import-ml-demo.ts');
+    const dataDir = path.join(process.cwd(), DATA);
+    /** A minimal, explicit environment (not the developer's .env, not this process's): cwd is an empty directory so dotenv loads nothing. */
+    const run = (nodeEnv: string, dbFile: string) => spawnSync(process.execPath, [tsx, script, '--data', dataDir], {
+      cwd: work, encoding: 'utf8', timeout: 100_000,
+      env: {
+        PATH: process.env.PATH, NODE_ENV: nodeEnv, DATABASE_PATH: dbFile, LOG_LEVEL: 'silent', BCRYPT_ROUNDS: '4',
+        JWT_SECRET: 'cli-test-jwt-secret-cli-test-jwt-secret-123456', OTP_PEPPER: 'cli-test-otp-pepper-cli-test-otp-pepper-123456',
+        DEMO_OTP_ENABLED: 'false', CORS_ORIGINS: 'https://example.org',
+      },
+    });
+
+    it('is refused in production: exit code 1, a clear message, and the database file is never even created', () => {
+      const db = path.join(work, 'prod.db');
+      const r = run('production', db);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toMatch(/Refusing to import synthetic demo data when NODE_ENV=production/);
+      expect(fs.existsSync(db)).toBe(false);
+      expect(fs.readdirSync(work).filter((f) => f.startsWith('prod.db'))).toEqual([]);
+    }, 120_000);
+
+    it('still works in development: imports, logs the result, and a second run reports there is nothing to do', () => {
+      const dbFile = path.join(work, 'dev.db');
+      const first = run('development', dbFile);
+      expect(first.status, first.stderr).toBe(0);
+      expect(first.stdout).toMatch(/Imported into .*dev\.db: 300 participants, 2400 visits/);
+      const second = run('development', dbFile);
+      expect(second.status, second.stderr).toBe(0);
+      expect(second.stdout).toMatch(/Nothing to do/);
+      const db = openDatabase(dbFile);
+      try {
+        expect(db.prepare('SELECT COUNT(*) c FROM patients').get()).toEqual({ c: 300 });
+        expect(db.prepare(`SELECT COUNT(*) c FROM users WHERE password_hash = '!'`).get()).toEqual({ c: 0 });
+      } finally { db.close(); }
+    }, 240_000);
   });
 });
