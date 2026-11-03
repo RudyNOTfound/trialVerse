@@ -234,18 +234,18 @@ class TrialData(_In):
                 raise ValueError(f"visit {v.visitId} references unknown siteId {v.siteId}")
             if v.participantId not in parts:
                 raise ValueError(f"visit {v.visitId} references unknown participantId {v.participantId}")
-        if self.ecgs is not None:
-            records = {e.ecgRecordId for e in self.ecgs}
-            unique([e.ecgRecordId for e in self.ecgs], "ecgRecordId")
-            for e in self.ecgs:
-                v = by_visit.get(e.visitId)
-                if v is None or e.siteId not in sites or e.participantId not in parts:
-                    raise ValueError(f"ECG {e.ecgRecordId} references an unknown visit, participant or site")
-                if v.siteId != e.siteId or v.participantId != e.participantId:
-                    raise ValueError(f"ECG {e.ecgRecordId} disagrees with visit {e.visitId} on site or participant")
-            for v in self.visits:
-                if v.ecgRecordId is not None and v.ecgRecordId not in records:
-                    raise ValueError(f"visit {v.visitId} references ecgRecordId {v.ecgRecordId} that is not in ecgs[]")
+        ecgs = self.ecgs or []                       # an omitted list is an empty list: a visit's ecgRecordId must still resolve
+        records = {e.ecgRecordId for e in ecgs}
+        unique([e.ecgRecordId for e in ecgs], "ecgRecordId")
+        for e in ecgs:
+            v = by_visit.get(e.visitId)
+            if v is None or e.siteId not in sites or e.participantId not in parts:
+                raise ValueError(f"ECG {e.ecgRecordId} references an unknown visit, participant or site")
+            if v.siteId != e.siteId or v.participantId != e.participantId:
+                raise ValueError(f"ECG {e.ecgRecordId} disagrees with visit {e.visitId} on site or participant")
+        for v in self.visits:
+            if v.ecgRecordId is not None and v.ecgRecordId not in records:
+                raise ValueError(f"visit {v.visitId} references ecgRecordId {v.ecgRecordId} that is not in ecgs[]")
         return self
 
 
