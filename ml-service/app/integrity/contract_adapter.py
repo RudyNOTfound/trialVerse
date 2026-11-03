@@ -21,10 +21,15 @@ def _known_zones() -> frozenset:
     return frozenset(available_timezones())
 
 
+_FIXED_OFFSET_ETC = re.compile(r"^Etc/GMT[+-]\d+$")      # POSIX-style, sign inverted ('Etc/GMT+5' is UTC-5): an offset in disguise
+
+
 def is_valid_iana(name: Any) -> bool:
     """Canonical IANA region names only ('Asia/Kolkata', 'UTC'). Offsets ('+05:30'), abbreviations ('IST'), legacy
-    aliases without a region ('EST5EDT') and unknown names are rejected."""
-    return isinstance(name, str) and (name == "UTC" or "/" in name) and name in _known_zones()
+    aliases without a region ('EST5EDT'), fixed-offset 'Etc/GMT+N' / 'Etc/GMT-N' names and unknown names are rejected.
+    Region aliases that resolve to the right rules ('Asia/Calcutta') stay accepted."""
+    return (isinstance(name, str) and (name == "UTC" or "/" in name) and not _FIXED_OFFSET_ETC.match(name)
+            and name in _known_zones())
 
 
 @functools.lru_cache(maxsize=512)

@@ -108,9 +108,9 @@ Response (the last two fields are additive; the backend ignores unknown response
 
 ```json
 {"contractVersion":"1.1","requestId":"req-123","modelName":"retention-dropout-risk","modelVersion":"1.0.0+logistic_regression.0e359a5a",
- "score":70.01,
+ "score":69.21,
  "factors":[{"name":"missed_reminders","contribution":10.55,"detail":"Missed reminders: 2 raises the model's risk score by 10.5 points"}],
- "explanation":"Predicted dropout risk 70/100; retention model category: high (model thresholds, separate from the platform's risk levels). Largest risk-increasing factors: … Factors are statistical associations …",
+ "explanation":"Predicted dropout risk 69/100; retention model category: high (model thresholds, separate from the platform's risk levels). Largest risk-increasing factors: … Factors are statistical associations …",
  "retentionRiskLevel":"high","recommendedActions":[{"action_type":"…","title":"…","reason":"…","priority":"high"}]}
 ```
 
@@ -208,7 +208,9 @@ Phase 4 (details, metrics and limitations in [`app/retention/README.md`](app/ret
 ROC-AUC 0.812, PR-AUC 0.678, Brier 0.138. Thresholds are chosen on validation data only (operational 0.18 maximises F2;
 high 0.39). Explanations are exact SHAP values over the whole pipeline, described as associations, never causes. Support
 actions come from transparent rules independent of the model. The API route calls `RetentionPredictor.predict`; it does not
-duplicate any logic. Ramesh's demo prediction is 70/100, HIGH.
+duplicate any logic. Ramesh's integrated demo prediction is **69.2/100, HIGH** (the backend derives his reimbursement delay as
+11.6 days, the mean of his 7 paid claims; the Phase 3 CSV rounds it to 12 days, which the model scores at 70.0 -- the same
+participant with a slightly different input, not a discrepancy).
 
 ## Integrity detection
 
@@ -229,10 +231,13 @@ Retention (binomial; also needs ≥ 15 points excess) · SBP last-digit preferen
 · SBP variance (F-test, ratio ≤ 0.5) · missing-OTP, late-night and delayed-entry rates (Fisher exact, minimum counts).
 High retention alone is LOW. Two signals → MEDIUM `site.multiple_integrity_signals`, three or more → HIGH.
 
-**C. ECG duplicates** (`ecg_dupes.py`): 64-bit perceptual hash (`imagehash.phash`), Hamming distance, union-find clusters.
+**C. ECG duplicates** (`ecg_dupes.py`): 64-bit perceptual hash (`imagehash.phash`), Hamming distance (all pairs, vectorised), connected-component clusters.
 Distance 0 = identical, ≤ 4 = near-identical (Phase 3 keeps distinct ECGs ≥ 8 apart). Cross-participant identical → HIGH.
-Missing, corrupt, non-image, or out-of-root files become `ecg.file_unavailable` findings; the scan continues. Hashes are
-cached by (path, mtime, size).
+Missing, corrupt, non-image, out-of-root (including symlinks that leave the ECG directory) and **featureless** files become
+`ecg.file_unavailable` findings (data quality, MEDIUM: "could not be checked"); the scan continues. A featureless image
+(grey-level std below `EcgConfig.min_pixel_std` = 2.0; the Phase 3 ECGs measure 35-91) has an uninformative hash that any other
+blank image shares, so it is never clustered: two different blank captures are not a "duplicate". Hashes are cached by
+(path, mtime, size). Byte-identical copies have distance 0.
 
 **D. Anomaly signal** (`anomaly.py`): Isolation Forest (200 trees, `random_state` 42, contamination 0.02 *assumed*) over
 **participant-level recording profiles** (SD of SBP/DBP/HR/glucose, share of BP values ending in 0/5, SBP range; ≥ 4
@@ -277,8 +282,11 @@ multiple-comparison correction.
 
 ```bash
 cd ml-service && python -m pytest                # everything: Phase 3 + Phase 4 + Phase 5 (no network)
-python -m pytest tests/integrity tests/service   # Phase 5 only
+python -m pytest tests/integrity tests/service   # Phase 5 / 6 only
+python -m pytest tests/service/test_http_socket.py   # real uvicorn subprocess + urllib (Ramesh-like request, Site C scan)
+python tests/perf/measure_integrity_scan.py --scenario A   # 20k-visit timing (A-E; not part of pytest)
 ```
+Last full run (this branch): **see `docs/phase6/08_PERSON_B_COMPLETION_REPORT.md` §6** for exact counts.
 
 `tests/integrity` — visit rules, site statistics (incl. insufficient data, honest-site false positives), ECG duplicates (with
 corrupt/missing files), Isolation Forest, audit rules, and the Phase 3 demo trial (Site C found, honest sites quiet).
@@ -290,7 +298,7 @@ corrupt artifacts, engine errors, timeouts, auth, body limits, log hygiene.
 ```bash
 cd ml-service
 python -m app.data_generation.generate_all
-python -m app.retention.train                     # → reports/retention/ (Ramesh: 70/100 HIGH)
+python -m app.retention.train                     # → reports/retention/ (Ramesh from the Phase 3 CSV: 70.0/100 HIGH; integrated path: 69.2)
 python -m app.integrity.demo                      # → reports/integrity/integrity_demo.{md,json}
 uvicorn app.main:app --port 8001
 ```
@@ -304,7 +312,13 @@ finding; the honest sites receive nothing above LOW. The report lists the observ
 
 * **Synthetic ground truth.** The fraud patterns were injected by the same author as the detectors; success here is a sanity
   check, not a performance estimate. Real fabrication would be subtler.
-* **Contract gap** (above): the live risk route cannot score today's backend features; Site C checks are off-contract.
+* **Contract v1.1 is implemented on the Python side and exercised live** (backend suite 19/19 against this service). Participants
+  with no resolved reminder history (`missed_reminders = null`) are refused with 422 and fall back to the backend baseline by
+  design -- the model is never given an invented value.
+* **ECG detection is perceptual-hash based**: it finds re-used or lightly re-encoded images, not an ECG re-drawn from the same
+  waveform, and a featureless image is reported as "cannot be checked", not as a duplicate.
+* **Recommendations are operational rules, not predictions**: they suggest support actions for the factors present; nothing
+  claims an action prevents dropout.
 * **Honest-site noise.** Honest sites still raise LOW missing-OTP warnings (~0.6% of visits).
 * **Isolation Forest** is a weak, partly redundant signal and works only as a group-level comparison.
 * **Retention model:** validation thresholds were optimistic on 300 rows; the operational threshold flags ~51% of
