@@ -14,11 +14,13 @@ export interface PatientDto {
   id: string; subjectCode: string; userId: string | null; firstName: string; lastName: string;
   dateOfBirth: string; sex: string; email: string | null; phone: string | null; status: string;
   createdAt: string; updatedAt: string;
+  /** null = unknown. */
+  dailyWageWorker: boolean | null;
   /** Embedded display name of the linked portal account (additive, read-only). */
   portalAccountName?: string | null;
 }
 
-const COLS = 'id, subject_code, user_id, first_name, last_name, date_of_birth, sex, email, phone, status, created_at, updated_at';
+const COLS = 'id, subject_code, user_id, first_name, last_name, date_of_birth, sex, email, phone, status, created_at, updated_at, daily_wage_worker';
 
 export function createPatientService(ctx: Ctx) {
   const { db } = ctx;
@@ -29,7 +31,7 @@ export function createPatientService(ctx: Ctx) {
   const lookups = createLookups(db);
   const withAccountNames = (items: PatientDto[]): PatientDto[] => {
     const u = lookups.users(items.map((p) => p.userId));
-    return items.map((p) => ({ ...p, portalAccountName: p.userId ? u.get(p.userId)?.name ?? null : null }));
+    return items.map((p) => ({ ...p, dailyWageWorker: p.dailyWageWorker === null || p.dailyWageWorker === undefined ? null : Boolean(p.dailyWageWorker), portalAccountName: p.userId ? u.get(p.userId)?.name ?? null : null }));
   };
 
   const get = (id: string): PatientDto => {
@@ -70,9 +72,9 @@ export function createPatientService(ctx: Ctx) {
             do { code = `P-${String(n++).padStart(4, '0')}`; } while (db.prepare('SELECT 1 FROM patients WHERE subject_code = ?').get(code));
           }
           db.prepare(
-            `INSERT INTO patients (id, subject_code, user_id, first_name, last_name, date_of_birth, sex, email, phone, status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-          ).run(id, code, input.userId ?? null, input.firstName, input.lastName, input.dateOfBirth, input.sex, input.email ?? null, input.phone ?? null, now, now);
+            `INSERT INTO patients (id, subject_code, user_id, first_name, last_name, date_of_birth, sex, email, phone, status, daily_wage_worker, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)`,
+          ).run(id, code, input.userId ?? null, input.firstName, input.lastName, input.dateOfBirth, input.sex, input.email ?? null, input.phone ?? null, input.dailyWageWorker === undefined ? null : input.dailyWageWorker ? 1 : 0, now, now);
           // Audit metadata deliberately excludes direct identifiers (names, DOB, contact details).
           appendAuditEvent(db, { actorId: actor.id, action: 'patient.created', entityType: 'patient', entityId: id, metadata: { subjectCode: code } });
         });

@@ -1,0 +1,6 @@
+site_id,site_code,name,city,state,country,trial_id,n_participants
+SITE-A,A,Roorkee Diabetes Research Centre,Roorkee,Uttarakhand,India,GLU-301,60
+SITE-B,B,Deccan Metabolic Institute,Pune,Maharashtra,India,GLU-301,60
+SITE-C,C,Vidarbha Clinical Research Unit,Nagpur,Maharashtra,India,GLU-301,60
+SITE-D,D,Malabar Endocrine Centre,Kochi,Kerala,India,GLU-301,60
+SITE-E,E,Gomti Diabetes Institute,Lucknow,Uttar Pradesh,India,GLU-301,60

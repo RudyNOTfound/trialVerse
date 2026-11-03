@@ -1,0 +1,622 @@
+{
+  "completed_visits": 1966,
+  "condition": "Type 2 diabetes",
+  "demo_dropout_rate": 0.2333,
+  "demo_participants": 300,
+  "ecg": {
+    "images": 30,
+    "references": 48,
+    "reused_references": 18,
+    "status": "ok"
+  },
+  "fraud_injection": {
+    "config": {
+      "batch_count": 3,
+      "batch_gap_minutes": [
+        1,
+        3
+      ],
+      "batch_start_window_minutes": [
+        30,
+        120
+      ],
+      "bp_round_to_5_rate": 0.85,
+      "dbp_between_sd": 2.0,
+      "dbp_within_sd": 1.5,
+      "enabled": true,
+      "late_night_hours": [
+        23,
+        4
+      ],
+      "participants_per_reused_ecg": 4,
+      "retention_target": 1.0,
+      "reused_ecg_images": 6,
+      "sbp_between_sd": 2.5,
+      "sbp_within_sd": 2.0,
+      "site_id": "SITE-C",
+      "unverified_visits": 18
+    },
+    "enabled": true,
+    "site_id": "SITE-C"
+  },
+  "generated_at": "2026-11-02T18:58:49+00:00",
+  "missed_visits": 434,
+  "random_seed": 42,
+  "scheduled_visits": 2400,
+  "scheduled_visits_per_participant": 8,
+  "site_statistics": {
+    "SITE-A": {
+      "measurements": {
+        "diastolic_bp": {
+          "mean": 81.75,
+          "sd": 8.41,
+          "share_ending_0_or_5": 0.2362
+        },
+        "glucose_mg_dl": {
+          "mean": 162.68,
+          "sd": 34.31
+        },
+        "heart_rate": {
+          "mean": 76.59,
+          "sd": 9.95
+        },
+        "systolic_bp": {
+          "mean": 132.98,
+          "sd": 13.97,
+          "share_ending_0_or_5": 0.2283
+        },
+        "weight_kg": {
+          "mean": 75.48,
+          "sd": 9.83
+        }
+      },
+      "otp_verification_rate": 0.9948,
+      "participant_retention_rate": 0.7333,
+      "participants": 60,
+      "unverified_visits": 2,
+      "visit_completion_rate": 0.7937
+    },
+    "SITE-B": {
+      "measurements": {
+        "diastolic_bp": {
+          "mean": 81.35,
+          "sd": 8.61,
+          "share_ending_0_or_5": 0.2039
+        },
+        "glucose_mg_dl": {
+          "mean": 163.72,
+          "sd": 28.98
+        },
+        "heart_rate": {
+          "mean": 76.85,
+          "sd": 12.28
+        },
+        "systolic_bp": {
+          "mean": 134.18,
+          "sd": 15.47,
+          "share_ending_0_or_5": 0.2011
+        },
+        "weight_kg": {
+          "mean": 71.07,
+          "sd": 12.83
+        }
+      },
+      "otp_verification_rate": 0.989,
+      "participant_retention_rate": 0.7,
+      "participants": 60,
+      "unverified_visits": 4,
+      "visit_completion_rate": 0.7562
+    },
+    "SITE-C": {
+      "measurements": {
+        "diastolic_bp": {
+          "mean": 82.32,
+          "sd": 2.65,
+          "share_ending_0_or_5": 0.8896
+        },
+        "glucose_mg_dl": {
+          "mean": 163.56,
+          "sd": 35.35
+        },
+        "heart_rate": {
+          "mean": 76.07,
+          "sd": 10.25
+        },
+        "systolic_bp": {
+          "mean": 131.96,
+          "sd": 3.62,
+          "share_ending_0_or_5": 0.8854
+        },
+        "weight_kg": {
+          "mean": 74.39,
+          "sd": 10.18
+        }
+      },
+      "otp_verification_rate": 0.9625,
+      "participant_retention_rate": 1.0,
+      "participants": 60,
+      "unverified_visits": 18,
+      "visit_completion_rate": 1.0
+    },
+    "SITE-D": {
+      "measurements": {
+        "diastolic_bp": {
+          "mean": 79.28,
+          "sd": 9.61,
+          "share_ending_0_or_5": 0.2075
+        },
+        "glucose_mg_dl": {
+          "mean": 158.91,
+          "sd": 31.91
+        },
+        "heart_rate": {
+          "mean": 72.11,
+          "sd": 10.22
+        },
+        "systolic_bp": {
+          "mean": 134.13,
+          "sd": 13.36,
+          "share_ending_0_or_5": 0.1931
+        },
+        "weight_kg": {
+          "mean": 74.08,
+          "sd": 11.9
+        }
+      },
+      "otp_verification_rate": 0.9971,
+      "participant_retention_rate": 0.6167,
+      "participants": 60,
+      "unverified_visits": 1,
+      "visit_completion_rate": 0.7229
+    },
+    "SITE-E": {
+      "measurements": {
+        "diastolic_bp": {
+          "mean": 81.81,
+          "sd": 8.43,
+          "share_ending_0_or_5": 0.2127
+        },
+        "glucose_mg_dl": {
+          "mean": 163.47,
+          "sd": 34.76
+        },
+        "heart_rate": {
+          "mean": 78.58,
+          "sd": 11.45
+        },
+        "systolic_bp": {
+          "mean": 130.27,
+          "sd": 12.25,
+          "share_ending_0_or_5": 0.2076
+        },
+        "weight_kg": {
+          "mean": 76.84,
+          "sd": 10.37
+        }
+      },
+      "otp_verification_rate": 0.9949,
+      "participant_retention_rate": 0.7833,
+      "participants": 60,
+      "unverified_visits": 2,
+      "visit_completion_rate": 0.8229
+    }
+  },
+  "sites": 5,
+  "training_dropout_distribution": {
+    "dropout_rate": 0.261,
+    "dropped_out": 522,
+    "not_dropped_out": 1478
+  },
+  "training_participants": 2000,
+  "trial_id": "GLU-301",
+  "validation": [
+    {
+      "detail": "2000",
+      "name": "counts: training participants",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "300",
+      "name": "counts: demo participants",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "5",
+      "name": "counts: sites",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "unique participant ids",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "unique visit ids",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "valid site ids",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "visit -> participant exists",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "visit site matches participant site",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "eight visits per participant",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "visit numbers 1..N",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "reimbursement -> visit/participant exists",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "reimbursements only for verified completed visits",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "reimbursement amount",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "enrollment dates in window",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "scheduled dates before as-of date",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "entry timestamp not before device timestamp",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "missed visits carry no measurements",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "age range",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "distance range",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "reimbursement delay range",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "visits_missed range",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "bp/hr/weight/glucose ranges",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "boolean fields are 0/1",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "dropout rate 0.261",
+      "name": "training class balance 15-45%",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "max |r| 0.43",
+      "name": "no single feature leaks the target (|r| < 0.6)",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "training label not deterministic",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "training missingness only where expected",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "visit ECG references are in ecg_metadata",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "ECG files exist",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "ECG metadata -> participant/visit/site consistent",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "participant visits_missed matches visits.csv",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "dropouts miss every visit from dropout_visit on",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "dropped_out flag agrees with dropout_visit",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "1.000",
+      "name": "site C retention ~100%",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sbp 0.89 dbp 0.89",
+      "name": "site C BP digit preference (0/5 >= 70%)",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "site C sd 3.6 vs honest 13.9",
+      "name": "site C low BP variance (< 50% of honest sd)",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "18",
+      "name": "site C >= 9 visits without OTP",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "site C unverified entries are late-night",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "largest burst 6",
+      "name": "site C unverified entries are batched (>= 5 within 10 min)",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "site C unverified entries span several participants",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "max participants per image 4",
+      "name": "site C ECG images reused across >= 4 participants",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "0.733",
+      "name": "SITE-A retention is not ~100%",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sbp 0.23",
+      "name": "SITE-A BP not digit-preferenced",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sd 14.0",
+      "name": "SITE-A BP has natural variance",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "2",
+      "name": "SITE-A < 9 unverified visits",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-A no late-night or batched entries",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-A ECG images not reused",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "0.700",
+      "name": "SITE-B retention is not ~100%",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sbp 0.20",
+      "name": "SITE-B BP not digit-preferenced",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sd 15.5",
+      "name": "SITE-B BP has natural variance",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "4",
+      "name": "SITE-B < 9 unverified visits",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-B no late-night or batched entries",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-B ECG images not reused",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "0.617",
+      "name": "SITE-D retention is not ~100%",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sbp 0.19",
+      "name": "SITE-D BP not digit-preferenced",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sd 13.4",
+      "name": "SITE-D BP has natural variance",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "1",
+      "name": "SITE-D < 9 unverified visits",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-D no late-night or batched entries",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-D ECG images not reused",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "0.783",
+      "name": "SITE-E retention is not ~100%",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sbp 0.21",
+      "name": "SITE-E BP not digit-preferenced",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "sd 12.2",
+      "name": "SITE-E BP has natural variance",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "2",
+      "name": "SITE-E < 9 unverified visits",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-E no late-night or batched entries",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "SITE-E ECG images not reused",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "no ECG image shared across sites",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "Ramesh profile (Roorkee, 40 km, 2 reminders, 12 d delay, >=1 missed)",
+      "passed": true,
+      "skipped": false
+    },
+    {
+      "detail": "",
+      "name": "reproducibility (second run is identical)",
+      "passed": true,
+      "skipped": false
+    }
+  ]
+}

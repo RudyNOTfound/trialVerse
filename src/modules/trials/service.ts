@@ -15,12 +15,14 @@ export interface TrialDto {
 export interface SiteDto {
   id: string; trialId: string; siteCode: string; name: string; city: string | null; country: string;
   principalInvestigatorId: string | null; status: string; createdAt: string; updatedAt: string;
+  timezone: string | null; mlSiteCategory: string | null;
   /** Embedded display name (additive, read-only). */
   principalInvestigatorName?: string | null;
 }
 export interface EnrollmentDto {
   id: string; patientId: string; trialId: string; trialSiteId: string; status: string; arm: string | null;
   enrolledAt: string | null; endedAt: string | null; createdAt: string; updatedAt: string;
+  distanceToSiteKm: number | null;
   /** Embedded display names (additive, read-only). */
   patientName?: string | null; patientCode?: string | null; trialCode?: string | null; trialTitle?: string | null; siteName?: string | null;
 }
@@ -44,10 +46,14 @@ export const ENROLLMENT_TRANSITIONS: TransitionMap<EnrollmentStatus> = {
 };
 
 const TRIAL_COLS = 'id, code, title, description, sponsor, phase, status, start_date, end_date, created_by, created_at, updated_at';
-const SITE_COLS = 'id, trial_id, site_code, name, city, country, principal_investigator_id, status, created_at, updated_at';
-const ENR_COLS = 'id, patient_id, trial_id, trial_site_id, status, arm, enrolled_at, ended_at, created_at, updated_at';
+const SITE_COLS = 'id, trial_id, site_code, name, city, country, principal_investigator_id, status, created_at, updated_at, timezone, ml_site_category';
+const ENR_COLS = 'id, patient_id, trial_id, trial_site_id, status, arm, enrolled_at, ended_at, created_at, updated_at, distance_to_site_km';
 
 const isUnique = (err: unknown) => (err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE';
+const siteConflict = (err: unknown) =>
+  AppError.conflict(/ml_site_category/.test(String((err as Error).message))
+    ? 'Another site in this trial already uses that mlSiteCategory'
+    : 'This trial already has a site with that siteCode');
 
 export function createTrialService(ctx: Ctx) {
   const { db } = ctx;
@@ -160,13 +166,13 @@ export function createTrialService(ctx: Ctx) {
           getTrial(trialId);
           if (input.principalInvestigatorId) assertInvestigator(input.principalInvestigatorId);
           db.prepare(
-            `INSERT INTO trial_sites (id, trial_id, site_code, name, city, country, principal_investigator_id, status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-          ).run(id, trialId, input.siteCode, input.name, input.city ?? null, input.country, input.principalInvestigatorId ?? null, now, now);
-          appendAuditEvent(db, { actorId: actor.id, action: 'trial_site.created', entityType: 'trial_site', entityId: id, metadata: { trialId, siteCode: input.siteCode } });
+            `INSERT INTO trial_sites (id, trial_id, site_code, name, city, country, principal_investigator_id, status, timezone, ml_site_category, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+          ).run(id, trialId, input.siteCode, input.name, input.city ?? null, input.country, input.principalInvestigatorId ?? null, input.timezone ?? null, input.mlSiteCategory ?? null, now, now);
+          appendAuditEvent(db, { actorId: actor.id, action: 'trial_site.created', entityType: 'trial_site', entityId: id, metadata: { trialId, siteCode: input.siteCode, timezone: input.timezone ?? null, mlSiteCategory: input.mlSiteCategory ?? null } });
         });
       } catch (err) {
-        if (isUnique(err)) throw AppError.conflict('This trial already has a site with that siteCode');
+        if (isUnique(err)) throw siteConflict(err);
         throw err;
       }
       return getSite(trialId, id);
@@ -183,7 +189,12 @@ export function createTrialService(ctx: Ctx) {
         if (patch.principalInvestigatorId) assertInvestigator(patch.principalInvestigatorId);
         const keys = changedKeys(existing as unknown as Record<string, unknown>, patch);
         if (keys.length === 0) return;
-        updateRow(db, 'trial_sites', siteId, Object.fromEntries(keys.map((k) => [k, (patch as Record<string, unknown>)[k]])));
+        try {
+          updateRow(db, 'trial_sites', siteId, Object.fromEntries(keys.map((k) => [k, (patch as Record<string, unknown>)[k]])));
+        } catch (err) {
+          if (isUnique(err)) throw siteConflict(err);
+          throw err;
+        }
         appendAuditEvent(db, { actorId: actor.id, action: 'trial_site.updated', entityType: 'trial_site', entityId: siteId, metadata: { trialId, changedFields: keys } });
       });
       return getSite(trialId, siteId);
@@ -229,6 +240,20 @@ export function createTrialService(ctx: Ctx) {
       const ob = orderBy(q.sort, q.order, { createdAt: 'created_at', enrolledAt: 'enrolled_at' }, 'created_at');
       const rows = db.prepare(`SELECT ${ENR_COLS} FROM enrollments ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
       return { items: enrollmentWithNames(mapRows<EnrollmentDto>(rows)), total };
+    },
+
+    /** PATCH /enrollments/:id: a status change and/or the participant's distance to the site. */
+    updateEnrollment(id: string, body: { status?: EnrollmentStatus; distanceToSiteKm?: number | null }, actor: Actor): EnrollmentDto {
+      if (body.status !== undefined) this.updateEnrollmentStatus(id, body.status, actor);
+      if (body.distanceToSiteKm !== undefined) {
+        inTransaction(db, () => {
+          const e = getEnrollment(id);
+          if (e.distanceToSiteKm === body.distanceToSiteKm) return;
+          updateRow(db, 'enrollments', id, { distanceToSiteKm: body.distanceToSiteKm });
+          appendAuditEvent(db, { actorId: actor.id, action: 'enrollment.updated', entityType: 'enrollment', entityId: id, metadata: { changedFields: ['distanceToSiteKm'], patientId: e.patientId, trialId: e.trialId } });
+        });
+      }
+      return getEnrollment(id);
     },
 
     updateEnrollmentStatus(id: string, status: EnrollmentStatus, actor: Actor): EnrollmentDto {
