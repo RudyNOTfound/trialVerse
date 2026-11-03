@@ -18,6 +18,10 @@ export interface VisitDto {
   /** Embedded display names (additive, read-only). */
   patientName?: string | null; patientCode?: string | null; trialCode?: string | null; trialTitle?: string | null;
   siteName?: string | null; verifiedByName?: string | null;
+  /** `verified_at IS NOT NULL`. False for a visit completed through the OTP-exception path. */
+  otpVerified?: boolean;
+  /** Present when the visit was completed without OTP verification. `note` is for investigator/admin only (stripped by the routes). */
+  otpException?: { reasonCode: string; recordedBy: string; recordedByName: string | null; recordedAt: string; note?: string } | null;
 }
 
 /** `otp_pending` and `verified` are reachable only through the OTP flow, never via the status endpoint. */
@@ -37,14 +41,26 @@ export function createVisitService(ctx: Ctx, patients: PatientService) {
   const { db } = ctx;
   const lookups = createLookups(db);
 
+  /** One batched query for the OTP exceptions of a page of visits. */
+  const otpExceptionsFor = (ids: string[]) => {
+    const out = new Map<string, { reasonCode: string; recordedBy: string; recordedByName: string | null; recordedAt: string; note: string }>();
+    if (ids.length === 0) return out;
+    const rows = db.prepare(`SELECT visit_id, reason_code, note, recorded_by, recorded_at FROM visit_otp_exceptions WHERE visit_id IN (${ids.map(() => '?').join(',')})`).all(...ids) as Array<{ visit_id: string; reason_code: string; note: string; recorded_by: string; recorded_at: string }>;
+    for (const r of rows) out.set(r.visit_id, { reasonCode: r.reason_code, recordedBy: r.recorded_by, recordedByName: null, recordedAt: r.recorded_at, note: r.note });
+    return out;
+  };
+
   /** Adds patient / trial / site / verifier names with one batched query per related table. */
   const withNames = (items: VisitDto[]): VisitDto[] => {
     const p = lookups.patients(items.map((v) => v.patientId));
     const t = lookups.trials(items.map((v) => v.trialId));
     const s = lookups.sites(items.map((v) => v.trialSiteId));
-    const u = lookups.users(items.map((v) => v.verifiedBy));
+    const exc = otpExceptionsFor(items.map((v) => v.id));
+    const u = lookups.users([...items.map((v) => v.verifiedBy), ...[...exc.values()].map((e) => e.recordedBy)]);
     return items.map((v) => ({
       ...v,
+      otpVerified: v.verifiedAt != null,
+      otpException: exc.has(v.id) ? { ...exc.get(v.id)!, recordedByName: u.get(exc.get(v.id)!.recordedBy)?.name ?? null } : null,
       patientName: p.get(v.patientId)?.name ?? null, patientCode: p.get(v.patientId)?.code ?? null,
       trialCode: t.get(v.trialId)?.code ?? null, trialTitle: t.get(v.trialId)?.title ?? null,
       siteName: s.get(v.trialSiteId)?.name ?? null, verifiedByName: v.verifiedBy ? u.get(v.verifiedBy)?.name ?? null : null,
@@ -132,11 +148,27 @@ export function createVisitService(ctx: Ctx, patients: PatientService) {
     },
 
     /** Terminal transitions: completed (requires verification), missed, cancelled. */
-    changeStatus(id: string, status: 'completed' | 'missed' | 'cancelled', note: string | undefined, actor: Actor): VisitDto {
+    changeStatus(id: string, status: 'completed' | 'missed' | 'cancelled', note: string | undefined, actor: Actor, otpException?: { reasonCode: string; note: string }): VisitDto {
       inTransaction(db, () => {
         const v = get(id);
-        assertTransition('Visit', VISIT_TRANSITIONS, v.status, status);
         const now = nowIso();
+        if (otpException) {
+          // Exception path (explicit and audited). The state machine itself is untouched: without `otpException` the usual
+          // 409 INVALID_STATE_TRANSITION still applies. The visit is NEVER marked verified (verified_at stays NULL).
+          if (status !== 'completed') throw AppError.otpExceptionNotApplicable("otpException only applies when status is 'completed'");
+          if (!['scheduled', 'otp_pending'].includes(v.status)) throw AppError.otpExceptionNotApplicable(`otpException does not apply to a visit with status '${v.status}'`);
+          db.prepare('INSERT INTO visit_otp_exceptions (id, visit_id, reason_code, note, recorded_by, recorded_at) VALUES (?, ?, ?, ?, ?, ?)')
+            .run(randomUUID(), id, otpException.reasonCode, otpException.note, actor.id, now);
+          updateRow(db, 'visits', id, { status: 'completed', completedAt: now });
+          db.prepare(`UPDATE otp_records SET status = 'superseded', updated_at = ? WHERE visit_id = ? AND status = 'active'`).run(now, id);
+          appendAuditEvent(db, {
+            actorId: actor.id, action: 'visit.completed_without_otp', entityType: 'visit', entityId: id,
+            // The free-text note stays in the database; only the reason code enters the hash-chained audit metadata.
+            metadata: { from: v.status, to: 'completed', patientId: v.patientId, trialId: v.trialId, reasonCode: otpException.reasonCode },
+          });
+          return;
+        }
+        assertTransition('Visit', VISIT_TRANSITIONS, v.status, status);
         updateRow(db, 'visits', id, { status, ...(status === 'completed' ? { completedAt: now } : {}) });
         // Any live OTP must not outlive a closed visit.
         if (status !== 'completed') {

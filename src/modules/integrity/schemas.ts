@@ -7,6 +7,8 @@ const alertStatus = z.enum(['open', 'acknowledged', 'resolved', 'dismissed']);
 export const scanBody = z.object({
   /** Look-back window for audit events, default 7 days, max 30 days. */
   windowHours: z.number().int().min(1).max(720).default(168),
+  /** Limit the trial-level checks (visits, sites, ECGs) to one trial. Default: every trial that has participants. */
+  trialId: z.string().uuid().optional(),
 });
 
 export const listAlertsQuery = z.object({

@@ -1,4 +1,4 @@
-# ML integration contract (v1.0)
+# ML integration contract (v1.1)
 
 **Audience:** Person A (core backend) and Person B (ML models). This document is the contract. The code of record is [`src/ml/contracts.ts`](../src/ml/contracts.ts) (types + zod response schemas) and [`src/ml/httpModels.ts`](../src/ml/httpModels.ts).
 
@@ -195,3 +195,77 @@ require('http').createServer((req, res) => {
   });
 }).listen(8001);
 ```
+
+
+---
+
+## Contract v1.1 (Phase 6) — what the backend sends to the Python service
+
+Version `1.1` is additive over `1.0` (peers compare the MAJOR number only). Person B's Pydantic models in
+`ml-service/app/api/schemas.py` are the source of truth; `src/ml/contracts.ts` mirrors them and is checked before every send.
+
+### Risk (`entityType: "patient"`, `featureSchemaVersion: "2"`)
+`visit` and `reimbursement` requests stay on schema `"1"`. A participant is scored by the retention (Logistic Regression) model only
+when every REQUIRED input is known; otherwise the request is not sent and the baseline answers with a reason such as
+`invalid_request: missing required features: site_id`. Unknown is `null`, never `0`.
+
+| Feature | Source |
+|---|---|
+| `site_id` | `trial_sites.ml_site_category` of the participant's current enrollment (unmapped ⇒ null) |
+| `age` | `patients.date_of_birth` |
+| `distance_km` | `enrollments.distance_to_site_km` (`PATCH /enrollments/:id`) |
+| `daily_wage_worker` | `patients.daily_wage_worker` (create/`PATCH /patients/:id`; null = unknown) |
+| `scheduled_visits`, `visits_missed` | visits of the enrollment (cancelled excluded; missed = status `missed`) |
+| `missed_reminders` | `visit_reminders` with resolved outcome; none resolved ⇒ null |
+| `reimbursement_delay_days` | mean of `paid_at - created_at` over paid reimbursements; none ⇒ null |
+| `side_effects_reported` | any row in `adverse_event_reports` |
+| `phone_changed` | a `patient.updated` audit event that changed `phone` |
+
+A 422 from Python is surfaced as a safe summary (error code, feature names, field paths — never messages or values), e.g.
+`model_error: Model service rejected the request (HTTP 422: unknown_site_category)`.
+
+### Integrity (`trialData`)
+`src/modules/integrity/trialData.ts` builds, per trial and with a constant number of queries: `sites` (IANA `timezone`,
+`mlSiteCategory`), `participants` (`droppedOut` from enrollment status `withdrawn`), `visits` (UTC instants with offsets,
+`otpVerified`, `otpExceptionReason`, measurements, `ecgRecordId`) and `ecgs` (`imageRef` relative to `ML_ECG_DIR`). Caps:
+200 sites, 5000 participants, 20000 visits, 2000 ECGs. A site without a timezone is left out together with its participants,
+visits and ECGs, and its id is recorded in `integrity.scan_completed` metadata (`sitesSkippedNoTimezone`) and in the scan response `coverage`.
+
+### OTP exception
+`POST /visits/:id/status` with `{ "status": "completed", "otpException": { "reasonCode": "...", "note": "..." } }`
+(admin/investigator only) completes a visit that was never OTP-verified. The visit is never marked verified
+(`verifiedAt` stays null, `otpVerified: false`); the exception is stored in `visit_otp_exceptions`, audited as
+`visit.completed_without_otp` (reason code only — the free-text note stays in the database and is hidden from other roles) and sent
+to Python as `otpVerified:false` + `otpExceptionReason`, which is evidence for reviewers and never lowers a finding.
+Without `otpException` the usual 409 stays.
+
+### Configuration
+| Variable | Meaning |
+|---|---|
+| `ML_RISK_URL`, `ML_INTEGRITY_URL`, `*_ENABLED` | where/whether to call the service |
+| `ML_API_KEY` | bearer token; must equal the Python service's `ML_API_KEY`. Wrong key ⇒ HTTP 401 ⇒ baseline fallback (`unauthorized`) |
+| `ML_TIMEOUT_MS` | risk timeout (default 3000) |
+| `ML_INTEGRITY_TIMEOUT_MS` | integrity timeout (default 10000) — scans send the whole trial |
+| `ML_ECG_DIR` | directory with the ECG images, must be the same directory the Python service uses (its `ML_ECG_DIR`) |
+
+Fallback is always marked: `fallback: { used: true, reason }` with reasons `unavailable`, `timeout`, `unauthorized`,
+`invalid_request` (refused before sending) or `model_error` (including Python's 422).
+
+### Running against the real Python service
+```bash
+# 1. Python (once): a venv with the versions the shipped model was trained with
+python3 -m venv ~/.venv-ml && ~/.venv-ml/bin/pip install -r ml-service/requirements.txt \
+  scikit-learn==1.6.1 numpy==2.0.2 pandas==2.3.3 shap==0.49.1      # newer scikit-learn cannot load pipeline.joblib
+# 2. dataset + service
+cd ml-service && python -m app.data_generation.generate_all
+ML_API_KEY=<test key> ML_ECG_DIR=$PWD/generated_data uvicorn app.main:app --port 8011
+# 3. demo data into the backend database (idempotent, additive), then use the app normally
+npm run ml:demo-import
+# 4. live tests (skipped unless ML_LIVE_URL and ML_LIVE_DATA are set)
+ML_LIVE_URL=http://127.0.0.1:8011 ML_LIVE_KEY=<test key> ML_LIVE_DATA=$PWD/ml-service/generated_data \
+  ML_LIVE_LOG=<service log file> npx vitest run tests/live
+```
+
+### Not implemented in this phase
+REST endpoints for reminders, adverse-event reports, visit measurements and ECG registration (the tables exist and the
+payload builders read them; they are filled by the demo import). Optional `risk_assessments.engine_extras` (decision D7) was not added.
