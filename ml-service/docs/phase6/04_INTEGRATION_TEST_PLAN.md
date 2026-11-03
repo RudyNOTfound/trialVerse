@@ -7,7 +7,7 @@ CSVs (read-only) or from small hand-built payloads. No test may use the network 
 
 | # | Scenario | Setup | Expected | Owner |
 |---|---|---|---|---|
-| T1 | Complete retention payload | Ramesh features (spec §3), schema `"2"` | 200; `score` equals `RetentionPredictor.predict(...)` (≈70.01 with the shipped model); `factors` non-empty; level `high` | B, X |
+| T1 | Complete retention payload | Ramesh features (spec §3), schema `"2"` | 200; `score` equals `RetentionPredictor.predict(...)` (≈69.2 for Ramesh with the backend-derived 11.6-day reimbursement delay; 70.01 if the Phase 3 CSV's rounded 12 days is sent); `factors` non-empty; level `high` | B, X |
 | T2 | Missing required retention feature | each required key removed in turn (`distance_km`, `site_id`, …) | 422 `unsupported_feature_schema`, `missingFeatures` lists exactly the removed key; backend stores baseline with `fallback.used=true`, reason contains `422` | B, X |
 | T3 | Missing optional values | `age=null`, `reimbursement_delay_days` omitted | 200; score computed; no warning claims a value was invented | B |
 | T4 | Invalid retention values | `distance_km:"far"`, `-4`, `true`; `missed_reminders:1.5`; `visits_missed > scheduled_visits`; `daily_wage_worker:7` | 422 `invalid_features` with field-level message | B |
@@ -56,7 +56,7 @@ CSVs (read-only) or from small hand-built payloads. No test may use the network 
 
 | # | Flow | Steps | Expected | Owner |
 |---|---|---|---|---|
-| E1 | **Ramesh** | seed DB (Ramesh in SITE-A with spec §3 values) → `POST /api/v1/risk/assessments {entityType:'patient', entityId}` | `engine.name = retention-dropout-risk`, `fallback.used=false`, score 70.0 (±0.1 vs the Python CLI), level high, factors include reminders/reimbursement delay/wage; audit event `risk.assessed`; row in `risk_assessments` | X |
+| E1 | **Ramesh** | seed DB (Ramesh in SITE-A with spec §3 values) → `POST /api/v1/risk/assessments {entityType:'patient', entityId}` | `engine.name = retention-dropout-risk`, `fallback.used=false`, score 69.2 (±0.1; the importer's 7 paid claims give an 11.6-day mean delay — the Python CLI on the CSV's rounded 12 days gives 70.0), level high, factors include reminders/reimbursement delay/wage; audit event `risk.assessed`; row in `risk_assessments` | X |
 | E2 | Ramesh with missing distance | null out `distance_km` | baseline engine used, `fallback.reason` contains `422` | X |
 | E3 | **Site C scan** | seed Site C visits/ECGs → `POST /api/v1/integrity/scans {}` | `integrity_alerts` rows with `source = trialguard-integrity`; ECG cluster alerts reference real visit ids; second scan creates **no duplicates** (dedupeKey) | X |
 | E4 | Broken chain | tamper one `audit_logs` row | `ml.chain_broken` CRITICAL (technical_violation) present alongside trial findings | X |

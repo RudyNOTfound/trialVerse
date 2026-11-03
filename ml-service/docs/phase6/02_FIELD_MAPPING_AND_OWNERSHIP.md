@@ -104,7 +104,7 @@ Request (`POST {ML_RISK_URL}/v1/risk/predict`, `Authorization: Bearer …` if co
     "patient_failed_otp_24h": 0, "patient_visits_7d": 0, "patient_missed_90d": 1,
     "patient_unverified_overdue": 0, "patient_duplicate_reimbursements": 0, "patient_reimbursement_total_30d_cents": 0,
     "site_id": "SITE-A", "age": 52, "distance_km": 40, "daily_wage_worker": 1, "scheduled_visits": 8,
-    "missed_reminders": 2, "reimbursement_delay_days": 12, "side_effects_reported": 1, "phone_changed": 0, "visits_missed": 1
+    "missed_reminders": 2, "reimbursement_delay_days": 11.6, "side_effects_reported": 1, "phone_changed": 0, "visits_missed": 1
   },
   "requestedAt": "2026-11-01T12:00:00.000Z"
 }
@@ -118,17 +118,17 @@ Response (verified live; `factors`/`recommendedActions` truncated here to 3/2 en
   "requestId": "6f1c2a0e-0000-4000-8000-000000000001",
   "modelName": "retention-dropout-risk",
   "modelVersion": "1.0.0+logistic_regression.0e359a5a",
-  "score": 70.01,
+  "score": 69.21,
   "factors": [
-    {"name": "missed_reminders", "contribution": 10.55, "detail": "Missed reminders: 2 raises the model's risk score by 10.5 points"},
-    {"name": "reimbursement_delay_days", "contribution": 10.42, "detail": "Reimbursement delay: 12 days raises the model's risk score by 10.4 points"},
+    {"name": "missed_reminders", "contribution": 10.54, "detail": "Missed reminders: 2 raises the model's risk score by 10.5 points"},
+    {"name": "reimbursement_delay_days", "contribution": 9.66, "detail": "Reimbursement delay: 11.6 days raises the model's risk score by 9.7 points"},
     {"name": "daily_wage_worker", "contribution": 8.69, "detail": "Daily-wage worker: yes raises the model's risk score by 8.7 points"}
   ],
-  "explanation": "Predicted dropout risk 70/100; retention model category: high (model thresholds, separate from the platform's risk levels). Largest risk-increasing factors: missed reminders (+10.6), reimbursement delay (+10.4), daily-wage worker (+8.7). Factors are statistical associations in synthetic training data, not causes. Prototype; not validated for clinical use.",
+  "explanation": "Predicted dropout risk 69/100; retention model category: high (model thresholds, separate from the platform's risk levels). Largest risk-increasing factors: missed reminders (+10.5), reimbursement delay (+9.7), daily-wage worker (+8.7). Factors are statistical associations in synthetic training data, not causes. Prototype; not validated for clinical use.",
   "retentionRiskLevel": "high",
   "recommendedActions": [
     {"action_type": "reminder_escalation", "title": "Increase reminder frequency or use IVR calls", "reason": "2 reminders were missed.", "priority": "high"},
-    {"action_type": "reimbursement_priority", "title": "Prioritise reimbursement resolution (instant payout where possible)", "reason": "Reimbursements are taking about 12 days.", "priority": "high"}
+    {"action_type": "reimbursement_priority", "title": "Prioritise reimbursement resolution (instant payout where possible)", "reason": "Reimbursements are taking about 11.6 days.", "priority": "high"}
   ]
 }
 ```

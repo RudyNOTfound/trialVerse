@@ -21,6 +21,8 @@ Owners: **A** = Person A (backend/DB/frontend, product decisions) · **B** = Per
 | D11 | Opaque UUIDs only; no names/DOB/phone/e-mail/address/free text/note/image bytes | Data minimisation; synthetic data only today | A + project owner | A + B: field allow-list in builders and schemas | **Person A / project owner**: lawful basis before any real participant data |
 | D12 | `scheduled_visits` required on contract route | Removes a silent default | B | B: remove default on contract route | None |
 | D13 | Python echoes `contractVersion: "1.1"` | Unambiguous in logs | B | B: constant | None |
+| D14 | A featureless (blank/uniform) ECG image is reported as `ecg.file_unavailable` ("cannot be checked"), never clustered as a duplicate | Every blank image shares one perceptual hash, so unrelated blank captures were reported as one "near-identical" cluster; threshold `EcgConfig.min_pixel_std` = 2.0 (Phase 3 ECGs: 35–91) | B | B: done (`ecg_dupes.py`, +13 tests). **No contract change**: existing rule id, category `data_quality`, severity `medium` | None |
+| D15 | Phase 6.1 validation: every non-null `ecgRecordId` must resolve in `ecgs[]` (also when `ecgs` is omitted); `Etc/GMT±N` timezone names rejected; OTP exception reason documented at `details.evidence.otpExceptionReason` / `details.signalEvidence.missing_otp.otpExceptionReason` | Spec §4.3/§4.4 already required these; the code was more permissive | B | B: done in commit `7e302dc`; stricter only, no semantic change | None |
 
 ## Final status
 
