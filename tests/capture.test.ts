@@ -43,8 +43,11 @@ describe('capture APIs: measurements', () => {
     const row = h.ctx.db.prepare('SELECT * FROM visit_measurements WHERE visit_id = ?').get(vid) as Record<string, unknown>;
     expect(row).toMatchObject({ systolic_bp: 128, glucose_mg_dl: 104, entered_by: sc.coord.id });
     const ev = audit('measurement.recorded').find((e) => e.entity_id === vid)!;
-    expect(JSON.parse(ev.metadata)).toMatchObject({ patientId: pid, visitId: vid, fields: ['systolicBp', 'diastolicBp', 'heartRate', 'weightKg', 'glucoseMgDl'] });
-    expect(ev.metadata).not.toMatch(/128|104|70\.5/);                                   // clinical values never enter the audit chain
+    // Exact shape, so no clinical value can be hiding in the audit chain. (Do NOT regex the raw JSON for the values: it holds random UUIDs,
+    // and e.g. "...c1284..." would match "128" by chance, which made this test fail about 3% of the time.)
+    const meta = JSON.parse(ev.metadata) as Record<string, unknown>;
+    expect(meta).toEqual({ patientId: pid, trialId: sc.trial.id, visitId: vid, fields: ['systolicBp', 'diastolicBp', 'heartRate', 'weightKg', 'glucoseMgDl'] });
+    expect(Object.values(meta).flat().filter((x) => typeof x !== 'string')).toEqual([]);      // no numeric value of any kind
     expect(get(`/measurements/${vid}`, sc.inv)).toBeTruthy();
     expect((await get(`/measurements/${vid}`, sc.inv)).body.data).toMatchObject({ id: vid, systolicBp: 128 });
     const list = await get(`/patients/${pid}/measurements`, sc.admin);
