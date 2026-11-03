@@ -5,3 +5,17 @@ data/*.db-*
 .env
 *.log
 coverage
+# Python
+__pycache__/
+*.py[cod]
+.venv-ml/
+.pytest_cache/
+.mypy_cache/
+
+# Generated training data
+ml-service/generated_data/training/
+ml-service/generated_data/cache/
+
+# Temporary files
+.DS_Store
+*.log
