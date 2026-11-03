@@ -6,7 +6,7 @@ import {
   type IntegrityModel, type IntegrityScanRequest, type RiskModel, type RiskPredictionRequest,
 } from '../src/ml/contracts';
 import { HttpRiskModel } from '../src/ml/httpModels';
-import { bearer, makeHarness, makeScenario } from './helpers';
+import { bearer, completeModelInputs, makeHarness, makeScenario, type Harness } from './helpers';
 
 /** A throw-away model service speaking the documented HTTP contract. Behaviour is switchable per test. */
 type Mode = 'ok' | 'http500' | 'badjson' | 'badschema' | 'wrongid' | 'slow' | 'integrity-ok';
@@ -48,12 +48,15 @@ beforeAll(async () => {
 });
 afterAll(() => new Promise<void>((r) => server.close(() => r())));
 
+/** makeScenario + complete v1.1 participant inputs, so the ML path (not the "incomplete participant" fallback) is exercised. */
+async function scenario(h: Harness) { const sc = await makeScenario(h); completeModelInputs(h, sc); return sc; }
+
 const mlEnv = (extra: Record<string, string> = {}) => ({ ML_RISK_ENABLED: 'true', ML_RISK_URL: url, ML_INTEGRITY_ENABLED: 'true', ML_INTEGRITY_URL: url, ML_TIMEOUT_MS: '400', ...extra });
 
 describe('ML integration contracts', () => {
   it('uses the baseline engines by default (ML disabled) and says so', async () => {
     const h = makeHarness();
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const r = await h.s.risk.assess({ entityType: 'patient', entityId: sc.patient.id }, sc.admin.actor);
     expect(r.engine.name).toBe('baseline-rules');
     expect(r.fallback.used).toBe(false);
@@ -66,9 +69,9 @@ describe('ML integration contracts', () => {
   it('sends the documented request envelope and stores the model response through the HTTP model service', async () => {
     mode = 'ok';
     const h = makeHarness({ env: mlEnv({ ML_API_KEY: 'secret-key' }) });
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const r = await h.s.risk.assess({ entityType: 'patient', entityId: sc.patient.id }, sc.admin.actor);
-    expect(lastBody).toMatchObject({ contractVersion: '1.0', entityType: 'patient', entityId: sc.patient.id, featureSchemaVersion: '1' });
+    expect(lastBody).toMatchObject({ contractVersion: CONTRACT_VERSION, entityType: 'patient', entityId: sc.patient.id, featureSchemaVersion: '2' });
     expect(lastBody.requestId).toEqual(expect.any(String));
     expect(Object.keys(lastBody.features)).toEqual(expect.arrayContaining(['patient_failed_otp_24h', 'patient_visits_7d', 'patient_missed_90d']));
     expect(lastAuth).toBe('Bearer secret-key');
@@ -86,7 +89,7 @@ describe('ML integration contracts', () => {
   ])('falls back to the baseline engine when the model service misbehaves (%s)', async (m, reasonRe) => {
     mode = m;
     const h = makeHarness({ env: mlEnv() });
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const r = await h.s.risk.assess({ entityType: 'patient', entityId: sc.patient.id }, sc.admin.actor);
     expect(r.engine.name).toBe('baseline-rules');
     expect(r.fallback.used).toBe(true);
@@ -96,7 +99,7 @@ describe('ML integration contracts', () => {
 
   it('falls back when the model service is unreachable, never failing the API request', async () => {
     const h = makeHarness({ env: mlEnv({ ML_RISK_URL: 'http://127.0.0.1:1' }) });
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const res = await h.api.post('/api/v1/risk/assessments').set(bearer(sc.admin)).send({ entityType: 'patient', entityId: sc.patient.id });
     expect(res.status).toBe(201);
     expect(res.body.data.fallback).toMatchObject({ used: true });
@@ -110,7 +113,7 @@ describe('ML integration contracts', () => {
       async predict(req) { calls.push(req); return { contractVersion: CONTRACT_VERSION, requestId: req.requestId, modelName: 'stub-risk', modelVersion: '9.9.9', score: 61, factors: [], explanation: 'stub' }; },
     };
     const h = makeHarness({ riskModel: model });
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const res = await h.api.post('/api/v1/risk/assessments').set(bearer(sc.admin)).send({ entityType: 'visit', entityId: sc.visit.id });
     expect(res.body.data).toMatchObject({ engine: { name: 'stub-risk' }, score: 61, level: 'high', fallback: { used: false } });
     expect(calls[0].features).toHaveProperty('visit_otp_failed_attempts');
@@ -119,7 +122,7 @@ describe('ML integration contracts', () => {
   it('falls back when an in-process model throws', async () => {
     const model: RiskModel = { name: 'bad', version: '1', async predict() { throw new Error('GPU on fire'); } };
     const h = makeHarness({ riskModel: model });
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const r = await h.s.risk.assess({ entityType: 'visit', entityId: sc.visit.id }, sc.admin.actor);
     expect(r.fallback.used).toBe(true);
     expect(r.fallback.reason).toMatch(/GPU on fire/);
@@ -129,12 +132,12 @@ describe('ML integration contracts', () => {
   it('integrates an ML integrity model: findings become de-duplicated alerts attributed to the model', async () => {
     mode = 'integrity-ok';
     const h = makeHarness({ env: mlEnv() });
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const first = await h.api.post('/api/v1/integrity/scans').set(bearer(sc.admin)).send({});
     expect(first.body.data).toMatchObject({ engine: { name: 'iso-forest' }, fallback: { used: false }, newAlerts: 1 });
     expect(first.body.data.alerts[0]).toMatchObject({ ruleId: 'ml.anomalous_actor', severity: 'high', source: 'iso-forest' });
     // The request carries the documented payload.
-    expect(lastBody).toMatchObject({ contractVersion: '1.0' });
+    expect(lastBody).toMatchObject({ contractVersion: CONTRACT_VERSION });
     expect(lastBody.events.length).toBeGreaterThan(0);
     expect(lastBody.chain).toMatchObject({ valid: true });
     expect(Object.keys(lastBody)).toEqual(expect.arrayContaining(['windowStart', 'windowEnd', 'events', 'reimbursements', 'openVisits', 'chain']));
@@ -145,7 +148,7 @@ describe('ML integration contracts', () => {
   it('falls back to the baseline integrity engine when the ML integrity model fails', async () => {
     const model: IntegrityModel = { name: 'bad-int', version: '1', async detect(_r: IntegrityScanRequest) { throw new MlError('unavailable', 'down'); } };
     const h = makeHarness({ integrityModel: model });
-    const sc = await makeScenario(h);
+    const sc = await scenario(h);
     const res = await h.api.post('/api/v1/integrity/scans').set(bearer(sc.admin)).send({});
     expect(res.status).toBe(201);
     expect(res.body.data.engine.name).toBe('baseline-integrity-rules');

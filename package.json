@@ -19,7 +19,8 @@
     "test:watch": "vitest",
     "setup": "node scripts/init-env.mjs",
     "docs:api": "tsx scripts/generate-api-docs.ts",
-    "email:test": "tsx scripts/send-test-email.ts"
+    "email:test": "tsx scripts/send-test-email.ts",
+    "ml:demo-import": "tsx scripts/import-ml-demo.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

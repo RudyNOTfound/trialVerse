@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { z } from 'zod';
 
 const bool = z
@@ -40,7 +42,12 @@ const envSchema = z.object({
   ML_RISK_URL: optionalString,
   ML_INTEGRITY_ENABLED: bool.default('false'),
   ML_INTEGRITY_URL: optionalString,
+  /** Risk requests (typically ~30 ms). */
   ML_TIMEOUT_MS: z.coerce.number().int().min(100).max(60000).default(3000),
+  /** Integrity scans over a whole trial can take seconds (a 20,000-visit scan measured 1.7-3.1 s on a laptop), so they get their own, larger budget. */
+  ML_INTEGRITY_TIMEOUT_MS: z.coerce.number().int().min(100).max(120000).default(10000),
+  /** Directory shared with the ML service (its ML_ECG_DIR). ECG records store paths relative to it. */
+  ML_ECG_DIR: optionalString,
   ML_API_KEY: optionalString,
   RISK_RULES_OVERRIDES: optionalString,
   INTEGRITY_RULES_OVERRIDES: optionalString,
@@ -63,6 +70,9 @@ export interface AppConfig {
     risk: { enabled: boolean; url?: string };
     integrity: { enabled: boolean; url?: string };
     timeoutMs: number;
+    integrityTimeoutMs: number;
+    /** Absolute, validated at load. Undefined => ECG file references cannot be registered. */
+    ecgDir?: string;
     apiKey?: string;
   };
   ruleOverrides: { risk?: unknown; integrity?: unknown };
@@ -108,6 +118,14 @@ export function loadConfig(source: Record<string, string | undefined> = process.
   }
   if (e.JWT_SECRET === e.OTP_PEPPER) throw new Error('Invalid configuration: OTP_PEPPER must differ from JWT_SECRET');
   if (e.ML_RISK_ENABLED && !e.ML_RISK_URL) throw new Error('Invalid configuration: ML_RISK_URL required when ML_RISK_ENABLED=true');
+  for (const [name, url] of [['ML_RISK_URL', e.ML_RISK_URL], ['ML_INTEGRITY_URL', e.ML_INTEGRITY_URL]] as const) {
+    if (url && !/^https?:\/\/[^\s/]+/i.test(url)) throw new Error(`Invalid configuration: ${name} must be an http(s) URL`);
+  }
+  let ecgDir: string | undefined;
+  if (e.ML_ECG_DIR) {
+    ecgDir = path.resolve(e.ML_ECG_DIR);
+    if (!fs.existsSync(ecgDir) || !fs.statSync(ecgDir).isDirectory()) throw new Error('Invalid configuration: ML_ECG_DIR must be an existing directory');
+  }
   if (e.ML_INTEGRITY_ENABLED && !e.ML_INTEGRITY_URL) {
     throw new Error('Invalid configuration: ML_INTEGRITY_URL required when ML_INTEGRITY_ENABLED=true');
   }
@@ -135,6 +153,8 @@ export function loadConfig(source: Record<string, string | undefined> = process.
       risk: { enabled: e.ML_RISK_ENABLED, url: e.ML_RISK_URL },
       integrity: { enabled: e.ML_INTEGRITY_ENABLED, url: e.ML_INTEGRITY_URL },
       timeoutMs: e.ML_TIMEOUT_MS,
+      integrityTimeoutMs: e.ML_INTEGRITY_TIMEOUT_MS,
+      ecgDir,
       apiKey: e.ML_API_KEY,
     },
     ruleOverrides: {

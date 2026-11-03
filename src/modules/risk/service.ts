@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import type { Actor, Ctx } from '../../context';
-import { CONTRACT_VERSION, FEATURE_SCHEMA_VERSION, type RiskAssessmentResult, type RiskEntityType, type RiskPredictionRequest } from '../../ml/contracts';
+import { CONTRACT_VERSION, featureSchemaVersionFor, type RiskAssessmentResult, type RiskEntityType, type RiskPredictionRequest } from '../../ml/contracts';
 import { inTransaction, mapRow, nowIso, orderBy } from '../../utils/db';
 import { entityLabels } from '../../utils/lookups';
 import { AppError } from '../../utils/errors';
@@ -49,14 +49,15 @@ export function createRiskService(ctx: Ctx) {
 
     /** Gathers features, runs the configured engine (baseline or ML-with-fallback), persists + audits the result. */
     async assess(input: z.infer<typeof assessBody>, actor: Actor | null): Promise<RiskAssessmentDto> {
+      const nowMs = Date.now();   // one instant for both the features and requestedAt
       const request: RiskPredictionRequest = {
         contractVersion: CONTRACT_VERSION,
         requestId: randomUUID(),
         entityType: input.entityType as RiskEntityType,
         entityId: input.entityId,
-        featureSchemaVersion: FEATURE_SCHEMA_VERSION,
-        features: buildFeatures(db, input.entityType, input.entityId),
-        requestedAt: nowIso(),
+        featureSchemaVersion: featureSchemaVersionFor(input.entityType as RiskEntityType),
+        features: buildFeatures(db, input.entityType, input.entityId, nowMs),
+        requestedAt: new Date(nowMs).toISOString(),
       };
       const result = await ctx.ml.risk.assess(request);
 

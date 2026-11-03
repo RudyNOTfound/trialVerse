@@ -10,11 +10,12 @@ describe('database & migrations', () => {
   it('applies migrations once and is idempotent', () => {
     const db = openDatabase(':memory:');
     const first = runMigrations(db);
-    expect(first).toEqual(['001_init.sql']);
+    expect(first).toEqual(['001_init.sql', '002_ml_inputs.sql']); // new migrations are appended; 001 is never edited
     expect(runMigrations(db)).toEqual([]);
     const tables = (db.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all() as { name: string }[]).map((t) => t.name);
     for (const t of ['users', 'patients', 'trials', 'trial_sites', 'enrollments', 'visits', 'otp_records', 'audit_logs', 'audit_chain_head',
-      'reimbursements', 'actions', 'status_history', 'risk_assessments', 'integrity_alerts']) expect(tables).toContain(t);
+      'reimbursements', 'actions', 'status_history', 'risk_assessments', 'integrity_alerts',
+      'visit_otp_exceptions', 'visit_reminders', 'adverse_event_reports', 'visit_measurements', 'visit_ecgs']) expect(tables).toContain(t);
   });
 
   it('persists to a file and reopens with data intact', () => {
