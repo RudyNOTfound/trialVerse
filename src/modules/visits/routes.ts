@@ -8,7 +8,7 @@ import { asyncHandler, idParam, ok, paginated } from '../../utils/http';
 import type { PatientService } from '../patients/service';
 import type { OtpService } from './otp';
 import { createVisitHistory } from './history';
-import type { VisitService } from './service';
+import type { VisitDto, VisitService } from './service';
 import { createVisitBody, listVisitsQuery, updateVisitBody, verifyOtpBody, visitStatusBody } from './schemas';
 
 export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, patients: PatientService) {
@@ -24,6 +24,8 @@ export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, pa
         handler: (_req, res) => res.status(429).json({ success: false, error: { code: 'RATE_LIMITED', message: 'Too many requests, try again later' } }),
       })
     : (_req, _res, next) => next();
+  /** The free-text exception note is for investigators/admins only; everyone else sees the reason code, not the note. */
+  const redact = (v: VisitDto, actor: { role: string }): VisitDto => (v.otpException && actor.role !== 'admin' && actor.role !== 'investigator' ? { ...v, otpException: { ...v.otpException, note: undefined } } : v);
   const issueLimiter = otpLimiter(ctx.config.rateLimit.otpIssueMax);
   const verifyLimiter = otpLimiter(ctx.config.rateLimit.otpVerifyMax);
 
@@ -32,13 +34,13 @@ export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, pa
     const q = { ...req.valid!.query };
     if (actor.role === 'patient') q.patientId = patients.getByUserId(actor.id).id; // server-side scoping
     const { items, total } = visits.list(q);
-    paginated(res, items, q.page, q.pageSize, total);
+    paginated(res, items.map((v) => redact(v, actor)), q.page, q.pageSize, total);
   }));
   r.post('/', requireRole('admin', 'coordinator'), validate({ body: createVisitBody }), asyncHandler((req, res) =>
     ok(res, visits.create(req.body, actorOf(req)), 201)));
-  r.get('/:id', validate({ params: idParam }), asyncHandler((req, res) => ok(res, visits.getForActor(req.valid!.params.id, actorOf(req)))));
+  r.get('/:id', validate({ params: idParam }), asyncHandler((req, res) => ok(res, redact(visits.getForActor(req.valid!.params.id, actorOf(req)), actorOf(req)))));
   r.patch('/:id', requireRole('admin', 'coordinator'), validate({ params: idParam, body: updateVisitBody }), asyncHandler((req, res) =>
-    ok(res, visits.update(req.valid!.params.id, req.body, actorOf(req)))));
+    ok(res, redact(visits.update(req.valid!.params.id, req.body, actorOf(req)), actorOf(req)))));
 
   // Staff only: the history is derived from the audit trail (actors, OTP failures), which participants do not see.
   r.get('/:id/history', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam }), asyncHandler((req, res) => {
@@ -50,7 +52,7 @@ export function visitsRouter(ctx: Ctx, visits: VisitService, otp: OtpService, pa
   r.post('/:id/status', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam, body: visitStatusBody }), asyncHandler((req, res) => {
     const actor = actorOf(req);
     if (req.body.status === 'completed' && actor.role === 'coordinator') throw AppError.forbidden('Only an investigator or admin can complete a visit');
-    ok(res, visits.changeStatus(req.valid!.params.id, req.body.status, req.body.note, actor));
+    ok(res, redact(visits.changeStatus(req.valid!.params.id, req.body.status, req.body.note, actor, req.body.otpException), actor));
   }));
 
   // Staff only. Delivers the code by email before committing it; the response never contains the code (except demo mode, dev only).

@@ -63,6 +63,6 @@ export function enrollmentsRouter(ctx: Ctx, svc: TrialService, patients: Patient
     ok(res, e);
   }));
   r.patch('/:id', requireRole('admin', 'coordinator', 'investigator'), validate({ params: idParam, body: updateEnrollmentBody }), asyncHandler((req, res) =>
-    ok(res, svc.updateEnrollmentStatus(req.valid!.params.id, req.body.status, actorOf(req)))));
+    ok(res, svc.updateEnrollment(req.valid!.params.id, req.body, actorOf(req)))));
   return r;
 }

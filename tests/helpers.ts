@@ -75,6 +75,20 @@ export async function makeUser(h: Harness, role: Role, name = role): Promise<Tes
 
 export const bearer = (u: { token: string }) => ({ Authorization: `Bearer ${u.token}` });
 
+/**
+ * Gives the scenario's participant COMPLETE ML contract v1.1 inputs (site category + timezone, distance, wage status, a resolved
+ * reminder). Without them a participant is, by design, scored by the baseline engine (the backend will not send an incomplete one).
+ */
+export function completeModelInputs(h: Harness, sc: { patient: { id: string }; site: { id: string }; enrollment: { id: string } }, opts: { category?: string; timezone?: string } = {}) {
+  const db = h.ctx.db;
+  db.prepare('UPDATE trial_sites SET ml_site_category = ?, timezone = ? WHERE id = ?').run(opts.category ?? 'SITE-A', opts.timezone ?? 'Asia/Kolkata', sc.site.id);
+  db.prepare('UPDATE enrollments SET distance_to_site_km = 40 WHERE id = ?').run(sc.enrollment.id);
+  db.prepare('UPDATE patients SET daily_wage_worker = 1 WHERE id = ?').run(sc.patient.id);
+  const t = new Date().toISOString();
+  db.prepare(`INSERT INTO visit_reminders (id, enrollment_id, channel, sent_at, outcome, outcome_recorded_at, created_at) VALUES (?, ?, 'sms', ?, 'missed', ?, ?)`)
+    .run(`rem-${sc.enrollment.id}`, sc.enrollment.id, t, t, t);
+}
+
 /** A fully wired clinical scenario created through the services. */
 export async function makeScenario(h: Harness) {
   const admin = await makeUser(h, 'admin');

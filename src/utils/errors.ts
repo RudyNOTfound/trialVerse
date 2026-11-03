@@ -10,6 +10,7 @@ export type ErrorCode =
   | 'OTP_LOCKED'
   | 'OTP_NOT_ACTIVE'
   | 'OTP_NO_RECIPIENT'
+  | 'OTP_EXCEPTION_NOT_APPLICABLE'
   | 'OTP_COOLDOWN'
   | 'OTP_DELIVERY_FAILED'
   | 'OTP_DELIVERY_UNAVAILABLE'
@@ -34,6 +35,8 @@ export class AppError extends Error {
   static notFound(what: string) { return new AppError(404, 'NOT_FOUND', `${what} not found`); }
   static conflict(message: string, details?: unknown) { return new AppError(409, 'CONFLICT', message, details); }
   static rateLimited(message: string) { return new AppError(429, 'RATE_LIMITED', message); }
+  /** An `otpException` was supplied where it cannot apply (status other than completed, or the visit is already verified/closed). */
+  static otpExceptionNotApplicable(message: string) { return new AppError(422, 'OTP_EXCEPTION_NOT_APPLICABLE', message); }
   /** The participant has no active linked portal account, so there is nowhere to send the code. */
   static otpNoRecipient(message: string) { return new AppError(409, 'OTP_NO_RECIPIENT', message); }
   static otpCooldown(retryAfterSeconds: number) {
