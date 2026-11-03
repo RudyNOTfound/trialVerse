@@ -28,6 +28,7 @@ Timezone handling: UTC instants → site-local ISO (via `zoneinfo`) before the n
 ## 3. Tests
 
 `python -m pytest tests` → **365 passed, 0 failed, 0 skipped** (233 pre-existing + 132 new, parametrised). Live check over real HTTP with the **shipped** model: Ramesh → 200, score **70.01**, `contractVersion "1.1"`; unmapped `site_id` → 422 `unknown_site_category`; the Phase 3 Site C golden request (UTC timestamps, UUIDs, Asia/Kolkata, real ECG files) → 18 multi-signal visits (exactly the injected ground truth), 6 ECG clusters of 4 participants, 3 rapid-entry clusters, and findings identical to the native route's (rule/entity/severity multiset) — T7/T12/T13.
+> *Superseded figure:* that smoke test sent the Phase 3 CSV's rounded 12-day reimbursement delay (score 70.0). The integrated path derives 11.6 days and scores **69.2** — see [08](08_PERSON_B_COMPLETION_REPORT.md) §7.
 
 **Intentional changes to existing tests (nothing deleted or weakened):**
 1. `test_api.py::test_risk_unknown_site_scores_with_warning_not_error` → renamed `test_risk_unknown_site_is_refused_on_the_contract_route`, now expects 422 `unknown_site_category` (D1). The old 200 behaviour is retained and asserted for the native route in `test_t5_native_route_is_unchanged…`.
