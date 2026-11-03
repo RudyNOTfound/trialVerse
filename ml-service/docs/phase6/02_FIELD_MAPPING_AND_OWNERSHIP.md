@@ -134,7 +134,7 @@ Response (verified live; `factors`/`recommendedActions` truncated here to 3/2 en
 ```
 
 (Python now answers `contractVersion: "1.1"` (D13, implemented); the backend only compares majors. Here the backend sent `site_id: "SITE-A"` because `trial_sites.ml_site_category = 'SITE-A'` for Ramesh's site.)
-The backend persists: `score 70`, `level high` (25/50/75), `triggeredRules` = `ml:<factor>` rows, `explanation`, engine name/version, and the audit event `risk.assessed`.
+The backend persists: `score 69.2`, `level high` (25/50/75), `triggeredRules` = `ml:<factor>` rows, `explanation`, engine name/version, and the audit event `risk.assessed`.
 
 Missing-input example → fallback path:
 

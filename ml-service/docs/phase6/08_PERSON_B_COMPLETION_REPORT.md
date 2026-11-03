@@ -14,7 +14,7 @@ therefore assesses (a) phases 3–6 against their documents and (b) the six Pers
 
 | Area | Requirement | Status | Evidence (executed) |
 |---|---|---|---|
-| **Ph 3 data** | Deterministic synthetic data (seed 42), 2,000 train / 300 demo participants, 5 sites, 2,400 visits, Site C anomalies, 30 ECG PNGs | COMPLETE | `tests/test_participants.py`, `test_visits.py`, `test_validation.py`, `test_ecg.py`; new `test_generated_data_consistency.py` (7) |
+| **Ph 3 data** | Synthetic data (seed 42), 2,000 train / 300 demo participants, 5 sites, 2,400 visits, Site C anomalies, 30 ECG PNGs | COMPLETE (tabular files byte-reproducible; ECG PNG bytes are environment-dependent — §12.2) | `tests/test_participants.py`, `test_visits.py`, `test_validation.py`, `test_ecg.py`; new `test_generated_data_consistency.py` (7) |
 | **Ph 4 / A** | Participant-level stratified 70/15/15 split, no ID overlap | COMPLETE | `test_split_is_stratified_disjoint_and_70_15_15`, `test_split_sizes_and_no_row_overlap`; ids unique (new test) |
 | | Preprocessing fitted on train only | COMPLETE | `test_imputer_and_scaler_fit_on_training_rows_only` |
 | | No (deterministic) label leakage | **COMPLETE (was unverified)** | new `test_data_leakage.py` (7): strongest single feature AUC 0.743, canary proves the detector trips |
@@ -128,3 +128,73 @@ None required by the documents. Open questions Q1–Q6 are recorded in `05_UNRES
 
 All Person B work is committed locally on `feature/ml-validation`; nothing is pushed. Person A-owned files (TypeScript, frontend, migrations,
 auth/OTP, database) were not modified.
+
+## 12. Final independent audit (read-only except where stated)
+
+Audit baseline: `f28dc38` on `feature/ml-validation` (17 files differ from `0e1ec24`, all under `ml-service/`; working tree was clean; `origin/integration/phase-6`
+is still `0e1ec24`, so nothing was overwritten). Nothing in this audit found a defect in Python code; the only changes it made are the
+documentation corrections described here.
+
+### 12.1 The original plan is not available
+A search of every tracked and untracked file (README, `docs/`, `ml-service/docs/`, scripts), the git history, and GitHub (`gh`: no issues; PR #1
+`integration/phase-6 → main` has an empty body) found **no 12-phase plan**. The only mention of "12-phase" anywhere is in the task prompts. Documents
+reference phases 0–6 only. No phase names or acceptance criteria for phases 1, 2 and 7–12 are invented here. Verifiable scope: documented phases 3–6 and
+areas A–F (§2).
+
+Four different kinds of "complete" — they are not interchangeable:
+
+| Level | Status |
+|---|---|
+| Person B Python implementation (documented phases 3–6, areas A–F) | **Complete and independently verified** (§6, §12.3) |
+| Overall project (all phases, both owners) | **Cannot be stated** — plan unavailable, and Person A items below are open |
+| Browser-demo readiness | **Not ready** — Person A blockers (§12.4); UI never run by Person B |
+| Production readiness | **No** — synthetic data only, no clinical validation, no security/privacy review of real-data handling (D11) |
+
+### 12.2 Discrepancy found: ECG PNG reproducibility
+Regenerating everything with seed 42 into a scratch directory (`generate_all`, 67/67 internal validation checks passed): the six tabular files
+(`participants`, `visits`, `reimbursements`, `sites`, `fraud_ground_truth`, `dropout_training`) are **byte-identical** to the committed ones. The 30 ECG PNGs
+are **not**: none is pixel-identical (max pixel difference 255, pHash distance up to 36), so `ecg_metadata.csv` (which stores the PNG SHA-256s) and
+`generation_summary.json` differ too. Two regenerations in separate processes on this machine are byte-identical to each other, so the generator itself is
+deterministic; the committed images (added by Person A in `939b13a`) were rendered in an environment with different library versions
+(here: neurokit2 0.2.10, matplotlib 3.9.4, numpy 2.0.2, Pillow 11.3.0; `requirements.txt` pins only scikit-learn and neurokit2's range).
+*Impact checked:* running the Site C scan on the **regenerated** dataset with its own images and ground truth gives the same result — 44 findings, the 18
+late-night visits and the 24 reused-ECG visits equal that dataset's ground truth, 6 clusters, 0 unavailable files. So detection does not depend on the
+particular PNG bytes; **byte-for-byte ECG reproducibility across environments is not claimed.** The committed images are internally consistent (metadata SHA-256
+equals file SHA-256 for all 48 rows; tested). No dependency pins were changed because the versions that produced the committed images are unknown.
+
+### 12.3 Independently re-verified (commands actually run)
+| Check | Result |
+|---|---|
+| Split re-derived from the documented recipe | 1,400 / 300 / 300; train∩val = train∩test = val∩test = ∅ participant ids |
+| Saved model | `LogisticRegression(C=10)`, matches metadata |
+| Validation (recomputed with plain scikit-learn) | ROC-AUC **0.8753**, PR-AUC **0.7607**, Brier 0.1162 |
+| Held-out test (synthetic data) | ROC-AUC **0.8125**, PR-AUC **0.6776**, Brier 0.1376 |
+| Test @ 0.18 | recall **0.833**, precision **0.422** (51.3% flagged); @ 0.39 recall 0.603 / precision 0.573 |
+| Threshold | independent argmax-F2 on validation = 0.177; stored 0.18 (0.01 grid) |
+| `python -m pytest` | **452 passed**, 0 skipped (`-rs` shows no skips) |
+| Contract v1.1 · retention · integrity · ECG edge cases · data consistency · socket · schema parity | 165 · 121 · 67 · 13 · 7 · 23 · 3 passed |
+| Backend `npx vitest run tests/live` against this service | **19 passed** |
+| Ramesh through the backend (service layer) | **69.2 / 100, HIGH**, engine `retention-dropout-risk`, no fallback, 7 triggered rules |
+| Site C through the backend | **44 findings, 44 new alerts**, no fallback: SITE-C 35 (6 ECG clusters HIGH, 18 multi-signal visits HIGH, 1 site multi-signal HIGH, 10 other site-level: 9 MEDIUM incl. 3 rapid-entry clusters, 1 LOW high-retention); honest sites 9 (all LOW `visit.missing_otp`: A 2, B 4, D 1, E 2), **0 site-level findings, 0 multi-signal visits** |
+| Socket scan (committed data) | 18 late-night visits and 24 reused-ECG visits equal the ground truth exactly |
+| 20,000-visit benchmark (`tests/perf`) | A 2.82 s · B 3.24–3.26 s · C 2.96–3.55 s · D 3.37–3.45 s (peak 625 MB) · E 3.81–3.93 s; all HTTP 200 |
+
+All metrics are **synthetic-data** evaluations. The injected Site C patterns were written by the same author as the detectors, so the Site C result is a sanity
+check, not an estimate of real-world detection performance, and nothing here is clinical validation.
+
+### 12.4 Person A hand-off (re-checked on this checkout; no new Person A commits exist on any remote branch)
+| # | Issue | Evidence | Owner | Required action | Blocks browser demo? |
+|---|---|---|---|---|---|
+| 1 | Demo importer ids (`P-A-001`) fail UUID route validation | `POST /risk/assessments` → 400 "Invalid uuid"; `GET /patients/P-A-001` → 400; `GET /visits/V-A-001-01` → 400 (re-run) | Person A | generate UUID ids in `src/seed/mlDemoImport.ts`, keep codes in `subject_code` | **Yes** (Ramesh cannot be assessed via API/UI) |
+| 2 | No capture routes for measurements, ECGs, reminders, adverse events | 0 write routes; inserts exist only in the importer | Person A | add routes or scripted demo seed | **Yes** for the "record visit information" step |
+| 3 | Frontend lacks ML input capture | 0 frontend references to `mlSiteCategory`, `distanceToSiteKm`, `dailyWageWorker`, `otpException` | Person A | forms (checklist A6) | Yes for entering inputs; no if data is pre-imported |
+| 4 | Frontend does not show model category / `recommendedActions` | 0 references to `retentionRiskLevel`/`recommendedActions`; parsed and dropped (D7 persistence undecided) | Person A | decide D7, display | No (score and explanation do show) |
+| 5 | Browser demo never run | `frontend/src` unchanged since `0e1ec24` | Person A / shared | run the 13-step sequence | — |
+| 6 | Real Resend delivery unverified | needs a real key; `.env.example` has `OTP_EMAIL_ENABLED=false` | Person A | one real send, or demo with demo-OTP on | No (demo OTP) |
+
+### 12.5 Verdicts
+* **Python service ready for integration:** yes — contract v1.1 behaviour verified over a real socket, against the backend's zod schemas, and by the backend's own 19 live tests.
+* **Complete application ready for a browser demo:** **no**, while items 1 and 2 stand.
+* Known limitations: synthetic ground truth; pHash finds reused or lightly re-encoded images only; the retention model's operational threshold flags ~51% of
+  participants; participants without reminder history fall back to the baseline by design (D4); ECG PNG bytes are not reproducible across library versions (§12.2).
+* Final commit: the branch tip on `feature/ml-validation` (the commit that adds this section follows `f28dc38`; read it with `git log -1`).
