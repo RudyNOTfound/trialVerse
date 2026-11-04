@@ -1,0 +1,1211 @@
+[
+ {
+  "id": "111f8378-65e8-46fb-aff8-3d88369c9bf0",
+  "ruleId": "ecg.duplicate_image",
+  "entityType": "ecg_cluster",
+  "entityId": "ecg-cluster-240c0f72d610",
+  "severity": "high",
+  "status": "open",
+  "message": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+  "details": {
+   "visitIds": [
+    "95373d90-abc8-5d13-98ea-07cba232e452",
+    "e77fd043-cc22-5119-b659-0431a40f4bfe",
+    "7a499069-2e54-5de4-b614-6981573c3b1b",
+    "259f6a88-6760-5f2c-9895-0cf7a695bb54"
+   ],
+   "participantIds": [
+    "bbfe3ed0-3c17-5a19-a869-d8193bc236a2",
+    "dd91c6ea-b3dd-5753-93c9-76941f0e017d",
+    "e551dcef-7666-5d21-9046-68210a39ac68",
+    "ffea2738-4b57-5d04-8ef6-ea388a9baf1c"
+   ],
+   "ecgIds": [
+    "d4e124d6-be95-533e-a1d5-5d6dc0d3925a",
+    "9c924219-c893-516a-80a5-2c7594fe775c",
+    "42696cad-c568-5aa9-beff-aef5385a2290",
+    "13fd96c7-a151-5b29-bb07-afa538b4b9fa"
+   ],
+   "siteIds": [
+    "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+   ],
+   "maxHammingDistance": 0,
+   "hashBits": 64,
+   "crossParticipant": true,
+   "pairs": [
+    {
+     "a": "d4e124d6-be95-533e-a1d5-5d6dc0d3925a",
+     "b": "9c924219-c893-516a-80a5-2c7594fe775c",
+     "distance": 0
+    },
+    {
+     "a": "d4e124d6-be95-533e-a1d5-5d6dc0d3925a",
+     "b": "42696cad-c568-5aa9-beff-aef5385a2290",
+     "distance": 0
+    },
+    {
+     "a": "d4e124d6-be95-533e-a1d5-5d6dc0d3925a",
+     "b": "13fd96c7-a151-5b29-bb07-afa538b4b9fa",
+     "distance": 0
+    },
+    {
+     "a": "9c924219-c893-516a-80a5-2c7594fe775c",
+     "b": "42696cad-c568-5aa9-beff-aef5385a2290",
+     "distance": 0
+    },
+    {
+     "a": "9c924219-c893-516a-80a5-2c7594fe775c",
+     "b": "13fd96c7-a151-5b29-bb07-afa538b4b9fa",
+     "distance": 0
+    },
+    {
+     "a": "42696cad-c568-5aa9-beff-aef5385a2290",
+     "b": "13fd96c7-a151-5b29-bb07-afa538b4b9fa",
+     "distance": 0
+    }
+   ],
+   "siteCode": "SITE-C",
+   "ecgRecordIds": [
+    "d4e124d6-be95-533e-a1d5-5d6dc0d3925a",
+    "9c924219-c893-516a-80a5-2c7594fe775c",
+    "42696cad-c568-5aa9-beff-aef5385a2290",
+    "13fd96c7-a151-5b29-bb07-afa538b4b9fa"
+   ],
+   "siteCodes": [
+    "SITE-C"
+   ],
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "a7f47e66ab2bc1ce8a419058c974bfcb4e8f6ca09cf3120bf5c04c5fec39b5f5",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.982Z",
+  "updatedAt": "2026-11-03T17:04:21.982Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "382fe6ec-a5c0-4148-933a-1e0e878fca63",
+  "ruleId": "ecg.duplicate_image",
+  "entityType": "ecg_cluster",
+  "entityId": "ecg-cluster-a5e42edb0975",
+  "severity": "high",
+  "status": "open",
+  "message": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+  "details": {
+   "visitIds": [
+    "edc72295-70f2-5651-80e8-866000c0777a",
+    "02a5b886-13c7-5ca4-9436-b4a26ab08cf0",
+    "5f28d2d3-5c5a-523e-b7ef-1ccffabac45a",
+    "356a9e41-ae6e-5f46-812e-274049b3ef58"
+   ],
+   "participantIds": [
+    "76b54ffb-b742-560c-905d-bcb1fa56cee2",
+    "7bb83bf1-d0ea-566c-91fb-fc7cf49cdebb",
+    "9f326fc7-f855-5b25-a902-2de3ea44ee0d",
+    "a32b2e8c-950e-582b-a57d-ed8f2183976c"
+   ],
+   "ecgIds": [
+    "aec14a55-4981-51d5-ac7a-bd5727327409",
+    "3ae032ba-99b4-5a6a-a236-72cad738fe15",
+    "d0a3c466-d857-567c-9712-d9e2e1dda1dd",
+    "8451a9bf-08ca-5483-b7c9-619615b3ced3"
+   ],
+   "siteIds": [
+    "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+   ],
+   "maxHammingDistance": 0,
+   "hashBits": 64,
+   "crossParticipant": true,
+   "pairs": [
+    {
+     "a": "aec14a55-4981-51d5-ac7a-bd5727327409",
+     "b": "3ae032ba-99b4-5a6a-a236-72cad738fe15",
+     "distance": 0
+    },
+    {
+     "a": "aec14a55-4981-51d5-ac7a-bd5727327409",
+     "b": "d0a3c466-d857-567c-9712-d9e2e1dda1dd",
+     "distance": 0
+    },
+    {
+     "a": "aec14a55-4981-51d5-ac7a-bd5727327409",
+     "b": "8451a9bf-08ca-5483-b7c9-619615b3ced3",
+     "distance": 0
+    },
+    {
+     "a": "3ae032ba-99b4-5a6a-a236-72cad738fe15",
+     "b": "d0a3c466-d857-567c-9712-d9e2e1dda1dd",
+     "distance": 0
+    },
+    {
+     "a": "3ae032ba-99b4-5a6a-a236-72cad738fe15",
+     "b": "8451a9bf-08ca-5483-b7c9-619615b3ced3",
+     "distance": 0
+    },
+    {
+     "a": "d0a3c466-d857-567c-9712-d9e2e1dda1dd",
+     "b": "8451a9bf-08ca-5483-b7c9-619615b3ced3",
+     "distance": 0
+    }
+   ],
+   "siteCode": "SITE-C",
+   "ecgRecordIds": [
+    "aec14a55-4981-51d5-ac7a-bd5727327409",
+    "3ae032ba-99b4-5a6a-a236-72cad738fe15",
+    "d0a3c466-d857-567c-9712-d9e2e1dda1dd",
+    "8451a9bf-08ca-5483-b7c9-619615b3ced3"
+   ],
+   "siteCodes": [
+    "SITE-C"
+   ],
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "2605400e4ae90aa302a66bd0c5293759c07bfde57bfb108291a0a249a0fe4b97",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.983Z",
+  "updatedAt": "2026-11-03T17:04:21.983Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "0124e117-8f2d-4e38-9ec3-4bd73b5fb86c",
+  "ruleId": "ecg.duplicate_image",
+  "entityType": "ecg_cluster",
+  "entityId": "ecg-cluster-b224eb9de0fc",
+  "severity": "high",
+  "status": "open",
+  "message": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+  "details": {
+   "visitIds": [
+    "08a83a86-ecba-56fd-9b8c-37502c9721c2",
+    "d64bf4bb-c6a9-5482-8af0-1cf1a4a48b92",
+    "534bfc89-7fb0-5b56-941f-d0e0b2519105",
+    "fc4434d1-1bcd-52d7-9353-54572e596a6c"
+   ],
+   "participantIds": [
+    "0b4bd1a3-a790-5133-8e99-e513faf6fcf9",
+    "22dea3a6-fe33-5562-8e01-e45c724df1b0",
+    "6398e01d-4575-5465-a305-bc6150c1518b",
+    "77d77ca7-eaf4-548f-a48f-172ccaef87fc"
+   ],
+   "ecgIds": [
+    "df18e913-8164-5915-a29d-5b31f9d35bc6",
+    "754d6c4c-6ab4-505d-8d58-7c5377900d79",
+    "433279fb-af98-5aec-94a2-6c20ad5ae1c1",
+    "fb5b7b8a-cd10-5bed-a508-46c89c624706"
+   ],
+   "siteIds": [
+    "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+   ],
+   "maxHammingDistance": 0,
+   "hashBits": 64,
+   "crossParticipant": true,
+   "pairs": [
+    {
+     "a": "df18e913-8164-5915-a29d-5b31f9d35bc6",
+     "b": "754d6c4c-6ab4-505d-8d58-7c5377900d79",
+     "distance": 0
+    },
+    {
+     "a": "df18e913-8164-5915-a29d-5b31f9d35bc6",
+     "b": "433279fb-af98-5aec-94a2-6c20ad5ae1c1",
+     "distance": 0
+    },
+    {
+     "a": "df18e913-8164-5915-a29d-5b31f9d35bc6",
+     "b": "fb5b7b8a-cd10-5bed-a508-46c89c624706",
+     "distance": 0
+    },
+    {
+     "a": "754d6c4c-6ab4-505d-8d58-7c5377900d79",
+     "b": "433279fb-af98-5aec-94a2-6c20ad5ae1c1",
+     "distance": 0
+    },
+    {
+     "a": "754d6c4c-6ab4-505d-8d58-7c5377900d79",
+     "b": "fb5b7b8a-cd10-5bed-a508-46c89c624706",
+     "distance": 0
+    },
+    {
+     "a": "433279fb-af98-5aec-94a2-6c20ad5ae1c1",
+     "b": "fb5b7b8a-cd10-5bed-a508-46c89c624706",
+     "distance": 0
+    }
+   ],
+   "siteCode": "SITE-C",
+   "ecgRecordIds": [
+    "df18e913-8164-5915-a29d-5b31f9d35bc6",
+    "754d6c4c-6ab4-505d-8d58-7c5377900d79",
+    "433279fb-af98-5aec-94a2-6c20ad5ae1c1",
+    "fb5b7b8a-cd10-5bed-a508-46c89c624706"
+   ],
+   "siteCodes": [
+    "SITE-C"
+   ],
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "8ed25e4a950e9d508d118c8ab9a4ab6084bf2b47cdd98671dc4a6a336b2f4ff7",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.983Z",
+  "updatedAt": "2026-11-03T17:04:21.983Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "12d815ed-b100-4a7d-8bc6-a3e3c3fd2675",
+  "ruleId": "ecg.duplicate_image",
+  "entityType": "ecg_cluster",
+  "entityId": "ecg-cluster-b92a79a95810",
+  "severity": "high",
+  "status": "open",
+  "message": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+  "details": {
+   "visitIds": [
+    "8e803e10-9d24-5611-8adb-78319f4f0848",
+    "b4955963-652a-5149-be18-0dd2050c63a0",
+    "f974ec0d-4e0a-5e9b-a99d-4ee75826e3de",
+    "fe1aceb1-debb-5b90-b936-b94ca106ae58"
+   ],
+   "participantIds": [
+    "2eee2273-d2a9-5f39-a3e6-0f594bfd16e1",
+    "5e7e2809-b022-56fd-b12b-0d30a69a9fe6",
+    "aba5b76b-dd21-54ad-8f3d-beda6a0db350",
+    "b66471fb-5d2a-5bb5-bec7-a455a0c54813"
+   ],
+   "ecgIds": [
+    "5918549f-5262-5906-945c-3593750eff5f",
+    "f555b2c9-26ba-555c-93c1-c138a2d106e6",
+    "6a154f30-a8b1-5cae-8b7f-6a95969546fd",
+    "aa775000-abe8-5b29-9446-d02a9ec7d5fa"
+   ],
+   "siteIds": [
+    "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+   ],
+   "maxHammingDistance": 0,
+   "hashBits": 64,
+   "crossParticipant": true,
+   "pairs": [
+    {
+     "a": "5918549f-5262-5906-945c-3593750eff5f",
+     "b": "f555b2c9-26ba-555c-93c1-c138a2d106e6",
+     "distance": 0
+    },
+    {
+     "a": "5918549f-5262-5906-945c-3593750eff5f",
+     "b": "6a154f30-a8b1-5cae-8b7f-6a95969546fd",
+     "distance": 0
+    },
+    {
+     "a": "5918549f-5262-5906-945c-3593750eff5f",
+     "b": "aa775000-abe8-5b29-9446-d02a9ec7d5fa",
+     "distance": 0
+    },
+    {
+     "a": "f555b2c9-26ba-555c-93c1-c138a2d106e6",
+     "b": "6a154f30-a8b1-5cae-8b7f-6a95969546fd",
+     "distance": 0
+    },
+    {
+     "a": "f555b2c9-26ba-555c-93c1-c138a2d106e6",
+     "b": "aa775000-abe8-5b29-9446-d02a9ec7d5fa",
+     "distance": 0
+    },
+    {
+     "a": "6a154f30-a8b1-5cae-8b7f-6a95969546fd",
+     "b": "aa775000-abe8-5b29-9446-d02a9ec7d5fa",
+     "distance": 0
+    }
+   ],
+   "siteCode": "SITE-C",
+   "ecgRecordIds": [
+    "5918549f-5262-5906-945c-3593750eff5f",
+    "f555b2c9-26ba-555c-93c1-c138a2d106e6",
+    "6a154f30-a8b1-5cae-8b7f-6a95969546fd",
+    "aa775000-abe8-5b29-9446-d02a9ec7d5fa"
+   ],
+   "siteCodes": [
+    "SITE-C"
+   ],
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "255e8bec3ac8f0f78894c5ccd777d3d97895b056c22f248d6e05858b3fddb1d8",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.983Z",
+  "updatedAt": "2026-11-03T17:04:21.983Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "a51cdc47-b3f9-4d19-933b-f587bc43620d",
+  "ruleId": "ecg.duplicate_image",
+  "entityType": "ecg_cluster",
+  "entityId": "ecg-cluster-bb05125fa644",
+  "severity": "high",
+  "status": "open",
+  "message": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+  "details": {
+   "visitIds": [
+    "ca1acbae-3f79-549c-8b79-cca333292383",
+    "18ac3d4c-f844-555c-b1ec-614ad92ef313",
+    "88d684d9-467b-56fd-b263-6e78bf2b69a8",
+    "c6d5b21b-646e-5dfa-bb8c-5f73dbf9d753"
+   ],
+   "participantIds": [
+    "0f6c0e8a-9594-5537-b135-8387883b5ce3",
+    "60c756c4-bfe5-5db3-acbe-72fd95cd49a7",
+    "7912e046-3229-5ca3-b1f9-c920d73d5334",
+    "a49e46cc-112f-587d-880c-b4e33e92ed51"
+   ],
+   "ecgIds": [
+    "f02813c6-336f-5802-95da-ebc221d54660",
+    "6da64183-387e-57bb-9933-51887fef8876",
+    "8a3642bf-a55f-57d5-b345-39203da68a8d",
+    "b028ce0e-d1d9-5bed-ac90-0c30aa84fc93"
+   ],
+   "siteIds": [
+    "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+   ],
+   "maxHammingDistance": 0,
+   "hashBits": 64,
+   "crossParticipant": true,
+   "pairs": [
+    {
+     "a": "f02813c6-336f-5802-95da-ebc221d54660",
+     "b": "6da64183-387e-57bb-9933-51887fef8876",
+     "distance": 0
+    },
+    {
+     "a": "f02813c6-336f-5802-95da-ebc221d54660",
+     "b": "8a3642bf-a55f-57d5-b345-39203da68a8d",
+     "distance": 0
+    },
+    {
+     "a": "f02813c6-336f-5802-95da-ebc221d54660",
+     "b": "b028ce0e-d1d9-5bed-ac90-0c30aa84fc93",
+     "distance": 0
+    },
+    {
+     "a": "6da64183-387e-57bb-9933-51887fef8876",
+     "b": "8a3642bf-a55f-57d5-b345-39203da68a8d",
+     "distance": 0
+    },
+    {
+     "a": "6da64183-387e-57bb-9933-51887fef8876",
+     "b": "b028ce0e-d1d9-5bed-ac90-0c30aa84fc93",
+     "distance": 0
+    },
+    {
+     "a": "8a3642bf-a55f-57d5-b345-39203da68a8d",
+     "b": "b028ce0e-d1d9-5bed-ac90-0c30aa84fc93",
+     "distance": 0
+    }
+   ],
+   "siteCode": "SITE-C",
+   "ecgRecordIds": [
+    "f02813c6-336f-5802-95da-ebc221d54660",
+    "6da64183-387e-57bb-9933-51887fef8876",
+    "8a3642bf-a55f-57d5-b345-39203da68a8d",
+    "b028ce0e-d1d9-5bed-ac90-0c30aa84fc93"
+   ],
+   "siteCodes": [
+    "SITE-C"
+   ],
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "32a20e81a9f192f2dad39855ac1030b00b3536cd558eae15876493b7bb0f5b97",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.983Z",
+  "updatedAt": "2026-11-03T17:04:21.983Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "6ed11642-7c6e-4b8e-8c56-9bd6fd0cecc0",
+  "ruleId": "ecg.duplicate_image",
+  "entityType": "ecg_cluster",
+  "entityId": "ecg-cluster-fb249bb14ec3",
+  "severity": "high",
+  "status": "open",
+  "message": "4 ECG images are identical (pHash Hamming distance up to 0, threshold 4) across 4 participant(s). Independent recordings of different people should not match.",
+  "details": {
+   "visitIds": [
+    "42f7123d-03eb-5f2f-8d92-e46267bf6d6f",
+    "a745d777-b21f-514d-b120-69249b0f4aeb",
+    "a8becf78-4d09-5719-9c26-67a93ce9e578",
+    "da5c72ba-1deb-5283-aa84-3f65cb4c1bb6"
+   ],
+   "participantIds": [
+    "06e27e9a-b7f3-52c1-a6ba-3f1cc1cea082",
+    "49548318-2c71-5b24-8058-8fd5fc303150",
+    "c780087a-7bf5-5713-a458-2fa3f6e15525",
+    "cceb9ea8-f79e-5d36-83e0-4a9b857ceb82"
+   ],
+   "ecgIds": [
+    "9af29a1a-8763-57c3-b4d9-0157ffa8491e",
+    "00baf792-6cea-57dc-af5c-cbc3e712b8b3",
+    "f250f12c-0062-549d-9a2f-0117f4ca8b59",
+    "86c169d6-2331-574c-9a8a-7cf7d39ad39a"
+   ],
+   "siteIds": [
+    "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+   ],
+   "maxHammingDistance": 0,
+   "hashBits": 64,
+   "crossParticipant": true,
+   "pairs": [
+    {
+     "a": "9af29a1a-8763-57c3-b4d9-0157ffa8491e",
+     "b": "00baf792-6cea-57dc-af5c-cbc3e712b8b3",
+     "distance": 0
+    },
+    {
+     "a": "9af29a1a-8763-57c3-b4d9-0157ffa8491e",
+     "b": "f250f12c-0062-549d-9a2f-0117f4ca8b59",
+     "distance": 0
+    },
+    {
+     "a": "9af29a1a-8763-57c3-b4d9-0157ffa8491e",
+     "b": "86c169d6-2331-574c-9a8a-7cf7d39ad39a",
+     "distance": 0
+    },
+    {
+     "a": "00baf792-6cea-57dc-af5c-cbc3e712b8b3",
+     "b": "f250f12c-0062-549d-9a2f-0117f4ca8b59",
+     "distance": 0
+    },
+    {
+     "a": "00baf792-6cea-57dc-af5c-cbc3e712b8b3",
+     "b": "86c169d6-2331-574c-9a8a-7cf7d39ad39a",
+     "distance": 0
+    },
+    {
+     "a": "f250f12c-0062-549d-9a2f-0117f4ca8b59",
+     "b": "86c169d6-2331-574c-9a8a-7cf7d39ad39a",
+     "distance": 0
+    }
+   ],
+   "siteCode": "SITE-C",
+   "ecgRecordIds": [
+    "9af29a1a-8763-57c3-b4d9-0157ffa8491e",
+    "00baf792-6cea-57dc-af5c-cbc3e712b8b3",
+    "f250f12c-0062-549d-9a2f-0117f4ca8b59",
+    "86c169d6-2331-574c-9a8a-7cf7d39ad39a"
+   ],
+   "siteCodes": [
+    "SITE-C"
+   ],
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Compare the original device exports and recording metadata for these visits.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "10113c22b58c10c528470ccffbf5e8d7c1a67ae5c185227267ad0705b83eb8a3",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.983Z",
+  "updatedAt": "2026-11-03T17:04:21.983Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "e3d6bdf7-fd41-4497-b0e9-9c932d5144ba",
+  "ruleId": "site.multiple_integrity_signals",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "high",
+  "status": "open",
+  "message": "Site SITE-C shows 7 independent integrity signals (high_retention, digit_preference, low_variance, missing_otp, late_night_entries, delayed_entries, rapid_entry_clusters). Together they are unusual relative to the other sites and warrant a human review; they do not prove misconduct.",
+  "details": {
+   "signals": [
+    "high_retention",
+    "digit_preference",
+    "low_variance",
+    "missing_otp",
+    "late_night_entries",
+    "delayed_entries",
+    "rapid_entry_clusters"
+   ],
+   "signalCount": 7,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Prioritise this site for a monitoring visit or source-data verification.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "9105d335fb4d82e0fab8452cdc6f9403a8f097cfd3a84934f5b8a79bb42df2ca",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.983Z",
+  "updatedAt": "2026-11-03T17:04:21.983Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "1a8bbb12-74ef-47d6-92bd-c3cdfc9082f5",
+  "ruleId": "visit.multiple_integrity_signals",
+  "entityType": "visit",
+  "entityId": "07f107e1-134e-5d85-954d-e739235787d7",
+  "severity": "high",
+  "status": "open",
+  "message": "Visit 07f107e1-134e-5d85-954d-e739235787d7 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+  "details": {
+   "participantId": "bbfe3ed0-3c17-5a19-a869-d8193bc236a2",
+   "signals": [
+    "late_entry",
+    "missing_otp",
+    "night_entry",
+    "rapid_entry"
+   ],
+   "signalEvidence": {
+    "missing_otp": {
+     "otp_verified": 0,
+     "exceptionDocumented": false
+    },
+    "late_entry": {
+     "hours_after_visit": 86.2,
+     "threshold_hours": 24
+    },
+    "night_entry": {
+     "entry_timestamp": "2026-08-20T01:56:44+05:30"
+    },
+    "rapid_entry": {
+     "cluster_start": "2026-08-20T01:48:00+05:30",
+     "cluster_end": "2026-08-20T01:56:44+05:30",
+     "entries": 6,
+     "span_minutes": 8.7
+    }
+   },
+   "signalCount": 4,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "b3157ba1bd5d5ce0c18f069ab386c3b8c07406076a1fe40f43a50b1d2f6f6454",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.983Z",
+  "updatedAt": "2026-11-03T17:04:21.983Z",
+  "resolvedByName": null,
+  "entityName": "week-24 · Latha Nair"
+ },
+ {
+  "id": "0f79fa71-6cfa-472e-869e-4cf86efe4261",
+  "ruleId": "visit.multiple_integrity_signals",
+  "entityType": "visit",
+  "entityId": "1ec5b24a-cde4-5709-ab66-35fd7e48b2b3",
+  "severity": "high",
+  "status": "open",
+  "message": "Visit 1ec5b24a-cde4-5709-ab66-35fd7e48b2b3 entered long after the visit; completed without OTP verification; entered late at night; was entered in a rapid burst of entries. Several independent signals together warrant review.",
+  "details": {
+   "participantId": "3e252d1d-39ea-5640-8cb7-8425d1ad81f6",
+   "signals": [
+    "late_entry",
+    "missing_otp",
+    "night_entry",
+    "rapid_entry"
+   ],
+   "signalEvidence": {
+    "missing_otp": {
+     "otp_verified": 0,
+     "exceptionDocumented": false
+    },
+    "late_entry": {
+     "hours_after_visit": 467.2,
+     "threshold_hours": 24
+    },
+    "night_entry": {
+     "entry_timestamp": "2026-04-29T01:20:31+05:30"
+    },
+    "rapid_entry": {
+     "cluster_start": "2026-04-29T01:16:00+05:30",
+     "cluster_end": "2026-04-29T01:25:42+05:30",
+     "entries": 6,
+     "span_minutes": 9.7
+    }
+   },
+   "signalCount": 4,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Review this visit against source documents with the site coordinator before drawing conclusions.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "3dbf427ffdd11d61331f1beaba7bf19ebff465340473a621ab053c7a95a7f0cc",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.984Z",
+  "updatedAt": "2026-11-03T17:04:21.984Z",
+  "resolvedByName": null,
+  "entityName": "week-8 · Meena Naidu"
+ },
+ {
+  "id": "b11c67ce-bf98-4f22-8262-46ec865f161b",
+  "ruleId": "ml.duplicate_reimbursement",
+  "entityType": "reimbursement",
+  "entityId": "a82dd053-347f-417b-9e0b-54e0f47e7339",
+  "severity": "high",
+  "status": "open",
+  "message": "2 active claims for the same visit, category (travel) and amount (7500 cents).",
+  "details": {
+   "claimIds": [
+    "eea5f78e-1824-44b3-ab0e-160303e2413e",
+    "a82dd053-347f-417b-9e0b-54e0f47e7339"
+   ],
+   "visitId": "b519ef75-88e5-4f97-a9a5-200fb177912d",
+   "category": "suspicious_pattern",
+   "amountCents": 7500,
+   "recommendedReviewAction": "Pay at most one of the claims; ask the requester which is intended."
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "0814785743f1bf23e0b37b80b2ef9bfcabeb136eaa9463505c00a7423080107a",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.985Z",
+  "updatedAt": "2026-11-03T17:04:21.985Z",
+  "resolvedByName": null,
+  "entityName": "Daniel Okafor · travel"
+ },
+ {
+  "id": "27d56d68-5f32-48b5-b978-8b6dac4a442c",
+  "ruleId": "ml.otp_failure_burst",
+  "entityType": "visit",
+  "entityId": "efddd2af-3cd1-42e9-9a56-a49455add012",
+  "severity": "high",
+  "status": "open",
+  "message": "5 failed OTP attempts on one visit in the window (threshold 5). May indicate code guessing.",
+  "details": {
+   "failedAttempts": 5,
+   "firstSeq": 67,
+   "lastSeq": 71,
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Contact the participant through a trusted channel and confirm they attended."
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "744b93c165b86015385cfe54cfe8fe977ba15889ea7aea96c42df76c8c7bedb2",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.985Z",
+  "updatedAt": "2026-11-03T17:04:21.985Z",
+  "resolvedByName": null,
+  "entityName": "Week 2 · Daniel Okafor"
+ },
+ {
+  "id": "321e57ea-7877-4046-82d4-f0954e97a930",
+  "ruleId": "site.low_bp_variance",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "Systolic BP at SITE-C has SD 3.6 versus 13.9 at the other sites (variance ratio 0.07, p=7.7e-172). Real patient data are rarely this uniform.",
+  "details": {
+   "site_sd": 3.6180935696352643,
+   "other_sites_sd": 13.864869369877045,
+   "variance_ratio": 0.06809700698315635,
+   "p_value": 7.72125990890113e-172,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Check whether readings were copied, templated or entered without measurement.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "7b94b206f321a49e104547bcfb79b76a7cb9c8304f82240280455bc134b15dd1",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.985Z",
+  "updatedAt": "2026-11-03T17:04:21.985Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "8a3274c0-8a85-4209-837a-6dc1402bc71f",
+  "ruleId": "site.bp_digit_preference",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "89% of systolic BP readings at SITE-C end in 0 or 5 (about 20% expected if last digits were uniform; n=480, p=3.9e-230). This suggests rounded or invented values.",
+  "details": {
+   "share_ending_0_or_5": 0.8854166666666666,
+   "expected": 0.2,
+   "n": 480,
+   "p_value": 3.8812743865583846e-230,
+   "diastolicShareEnding0Or5": 0.8895833333333333,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Request source documents or device logs for a sample of readings.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "aefd8c27363c594394d6b5bb25a4b1468dbf0cf54ddb42d324dbebf9386d94e9",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.985Z",
+  "updatedAt": "2026-11-03T17:04:21.985Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "a1785b6a-221c-433d-a4ba-6ec8182165df",
+  "ruleId": "site.delayed_entries",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "SITE-C has 18 entries made >24 h after the visit (3.8% of 480) versus 0.0% at the other sites (p=7.4e-12).",
+  "details": {
+   "count": 18,
+   "n": 480,
+   "site_rate": 0.0375,
+   "other_sites_rate": 0,
+   "p_value": 7.440340925424477e-12,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Review the affected visits and the site's data-entry practices.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "fe8dfa24d53cd49386906e305c36169f5fe46aaca5698f38e2c9f6f4954eb070",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.985Z",
+  "updatedAt": "2026-11-03T17:04:21.985Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "0419745a-82cf-426c-80b4-292dc0545652",
+  "ruleId": "site.late_night_entries",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "SITE-C has 18 entries made late at night (3.8% of 480) versus 0.0% at the other sites (p=7.4e-12).",
+  "details": {
+   "count": 18,
+   "n": 480,
+   "site_rate": 0.0375,
+   "other_sites_rate": 0,
+   "p_value": 7.440340925424477e-12,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Review the affected visits and the site's data-entry practices.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "8f6f58ecdcda2b03ae1766fba6934ab7e6856b578a27c5795a2f16655319947f",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.985Z",
+  "updatedAt": "2026-11-03T17:04:21.985Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "c0b3b074-7879-4489-82d0-ec72609d7498",
+  "ruleId": "ml.actor_activity_outlier",
+  "entityType": "user",
+  "entityId": "8ee3d1ef-b48f-42c0-a7e1-709b18694689",
+  "severity": "medium",
+  "status": "open",
+  "message": "This user generated 74 of 163 audit events (45%), far above the median actor (robust z=5.2). Heavy activity can be legitimate (e.g. a coordinator).",
+  "details": {
+   "events": 74,
+   "share": 0.454,
+   "medianEvents": 12,
+   "robustZ": 5.23,
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Confirm the activity matches the user's role."
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "06676bdf21028fe8a22f446acc06632079b6aae93b94c66ee8dd5ffc99496b5d",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "4b833a2b-36d4-4f4f-980a-4c497d0e4f01",
+  "ruleId": "ml.patient_unverified_visits",
+  "entityType": "patient",
+  "entityId": "9a3c3789-00a2-4dc7-8196-3d5da5f7f741",
+  "severity": "medium",
+  "status": "open",
+  "message": "3 visits for one patient remain unverified past their schedule.",
+  "details": {
+   "unverifiedVisits": 3,
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Contact the patient or site to establish whether the visits occurred."
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "182f4c11a8b036fd1934cdb0dc75d0160732b69be6821cfc2bcaa1aa2b98b431",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": "Tomas Herrera"
+ },
+ {
+  "id": "9078c069-4130-42ef-beb1-d5d88eb1d1a3",
+  "ruleId": "site.anomaly_enrichment",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "Participant recording profiles at SITE-C score higher on the unsupervised anomaly model than at the other sites (mean 0.49 vs 0.46, p=2.6e-11). This is an anomaly signal, not proof of fraud.",
+  "details": {
+   "site_id": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+   "participants": 60,
+   "mean_anomaly_score": 0.49391225289112484,
+   "other_sites_mean_anomaly_score": 0.45528273169720707,
+   "p_value": 2.5698354478827307e-11,
+   "flagged": 3,
+   "participant_ids": [
+    "40300946-f3ed-5ec9-ac05-e881c48876e0",
+    "b069af96-fad0-53d2-9d64-ea17027dccae",
+    "dbecc759-aa69-5a09-9272-e9a16103522d"
+   ],
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Use alongside the site-level statistics; do not act on this score alone.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "dedbf622a8df1c77dc7e5ed5ae440839bd860e2d8be088ee9f1af698096811de",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "1b587e26-9357-4cc1-a65d-c2b77ab047a5",
+  "ruleId": "site.missing_otp_rate",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "SITE-C has 18 completed visits without OTP verification (3.8% of 480) versus 0.6% at the other sites (p=3.5e-06).",
+  "details": {
+   "count": 18,
+   "n": 480,
+   "site_rate": 0.0375,
+   "other_sites_rate": 0.006056527590847914,
+   "p_value": 3.544110255527145e-06,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Review the affected visits and the site's data-entry practices.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "d50778f6454f1d2d597d671cdf568b96aec6bb4a2a535550571613b5b7d0cd39",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "7d83cf8c-cb5e-4e2c-847a-8653a9c0c7f5",
+  "ruleId": "site.rapid_entry_cluster",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "6 visits at SITE-C were entered within 9.7 minutes (2026-04-29T01:16:00+05:30 to 2026-04-29T01:25:42+05:30).",
+  "details": {
+   "visitIds": [
+    "a745d777-b21f-514d-b120-69249b0f4aeb",
+    "59ee0c42-491d-57e7-bd88-69e27453ddc2",
+    "1ec5b24a-cde4-5709-ab66-35fd7e48b2b3",
+    "afe01953-6b3d-548b-86ad-4f997bb3e847",
+    "b957c09d-beef-5ea1-96d0-a70b8a9f2405",
+    "c1e7816f-9c18-51c4-8731-21a74c21c638"
+   ],
+   "start": "2026-04-29T01:16:00+05:30",
+   "end": "2026-04-29T01:25:42+05:30",
+   "spanMinutes": 9.7,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Ask who entered these records and compare with visit dates in source documents.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "b90baf5f77e3c1be17cc6a576d7cf937aff960930e8c4b2ee9ef162969017274",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "d78e9f10-26e3-4deb-a1cf-04bd9bec62b1",
+  "ruleId": "site.rapid_entry_cluster",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "6 visits at SITE-C were entered within 11.7 minutes (2026-06-24T00:36:00+05:30 to 2026-06-24T00:47:42+05:30).",
+  "details": {
+   "visitIds": [
+    "822708f9-233c-5c87-bc84-71c8802da0d2",
+    "857cc9f6-f253-525b-a341-f85e3a947972",
+    "c39119d8-3bf0-5572-ae59-b8bcddd947c4",
+    "bc87de90-fa0d-5b16-b4ba-595b255350e2",
+    "76666f61-aa1a-506d-940b-f4224095eab4",
+    "e0a416f5-14cc-5a9b-9eb9-d05f7bcf9202"
+   ],
+   "start": "2026-06-24T00:36:00+05:30",
+   "end": "2026-06-24T00:47:42+05:30",
+   "spanMinutes": 11.7,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Ask who entered these records and compare with visit dates in source documents.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "c51e9d801cc837ba44dfe0123ac8b1137dde7f36310f7ad06335621d27cd5eea",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "4ce81780-6302-491d-9843-d94a79835071",
+  "ruleId": "site.rapid_entry_cluster",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "medium",
+  "status": "open",
+  "message": "6 visits at SITE-C were entered within 8.7 minutes (2026-08-20T01:48:00+05:30 to 2026-08-20T01:56:44+05:30).",
+  "details": {
+   "visitIds": [
+    "534bfc89-7fb0-5b56-941f-d0e0b2519105",
+    "fc4434d1-1bcd-52d7-9353-54572e596a6c",
+    "27b3a1f2-12e7-5e8c-a4e8-f73b46ed4e49",
+    "b8e4df71-62e5-5c26-b56b-3cb1ab86a0aa",
+    "e2c7b5f9-2026-5c62-90d2-db582672a537",
+    "07f107e1-134e-5d85-954d-e739235787d7"
+   ],
+   "start": "2026-08-20T01:48:00+05:30",
+   "end": "2026-08-20T01:56:44+05:30",
+   "spanMinutes": 8.7,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Ask who entered these records and compare with visit dates in source documents.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "fc91983a017d8191052e14d58679f1d39c2cc191f236a4dc6f538466057c6ae3",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "4088600c-7305-4608-b577-28835777053c",
+  "ruleId": "site.high_retention",
+  "entityType": "site",
+  "entityId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c",
+  "severity": "low",
+  "status": "open",
+  "message": "Site SITE-C retained 100% of participants versus 71% at the other sites (p=1.0e-09). High retention alone is not evidence of fraud; it is only meaningful alongside other signals.",
+  "details": {
+   "site_rate": 1,
+   "other_sites_rate": 0.7083333333333334,
+   "p_value": 1.033381732307052e-09,
+   "siteCode": "SITE-C",
+   "category": "suspicious_pattern",
+   "recommendedReviewAction": "Compare with the other signals for this site before acting.",
+   "siteId": "3b4d7529-3fd1-5802-825b-cc2fa1e6d83c"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "fc5ece91b681054749fa230446467d54f09617f6f8799419be67372e7eb61c58",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": null
+ },
+ {
+  "id": "dec2cfe2-b935-4613-ac40-fd7203a56cc4",
+  "ruleId": "ml.unverified_visit_overdue",
+  "entityType": "visit",
+  "entityId": "efddd2af-3cd1-42e9-9a56-a49455add012",
+  "severity": "low",
+  "status": "open",
+  "message": "Visit is past its scheduled time and still has no OTP verification.",
+  "details": {
+   "scheduledAt": "2026-10-31T17:03:42.932Z",
+   "status": "otp_pending",
+   "category": "data_quality",
+   "recommendedReviewAction": "Follow up with the site; mark as missed if the visit did not take place."
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "fa12a4af3b292af2ca1d0e1e985d140b5eb2fa07a1513006f95cac752f633263",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": "Week 2 · Daniel Okafor"
+ },
+ {
+  "id": "3de517c3-90a8-4f56-94ba-d2a0387cf036",
+  "ruleId": "visit.missing_otp",
+  "entityType": "visit",
+  "entityId": "466b0f8a-6b22-57fd-a493-fabfb441ac03",
+  "severity": "low",
+  "status": "open",
+  "message": "Visit 466b0f8a-6b22-57fd-a493-fabfb441ac03 completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+  "details": {
+   "participantId": "d8a62df6-a202-58f8-808f-4fec34cf4866",
+   "signals": [
+    "missing_otp"
+   ],
+   "signalEvidence": {
+    "missing_otp": {
+     "otp_verified": 0,
+     "exceptionDocumented": false
+    }
+   },
+   "evidence": {
+    "otp_verified": 0,
+    "exceptionDocumented": false
+   },
+   "siteCode": "SITE-B",
+   "category": "data_quality",
+   "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record. No OTP exception was documented for this visit.",
+   "siteId": "7e46058f-1e77-5b5e-97b5-48ad8b8447d5"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "4265f23580ddd2bf24462dfbeec99ee830cd860ddd044cbf853fdc94a97d111f",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": "baseline · Rajesh Reddy"
+ },
+ {
+  "id": "3bb19288-dec6-46fe-b7b0-9eb8792e379a",
+  "ruleId": "visit.missing_otp",
+  "entityType": "visit",
+  "entityId": "5529c379-2f8c-5526-b30f-68462310ca6e",
+  "severity": "low",
+  "status": "open",
+  "message": "Visit 5529c379-2f8c-5526-b30f-68462310ca6e completed without OTP verification. A single signal is a data-quality warning, not evidence of misconduct.",
+  "details": {
+   "participantId": "aaa6ebdd-fd28-5011-a1da-4b4d53edc885",
+   "signals": [
+    "missing_otp"
+   ],
+   "signalEvidence": {
+    "missing_otp": {
+     "otp_verified": 0,
+     "exceptionDocumented": false
+    }
+   },
+   "evidence": {
+    "otp_verified": 0,
+    "exceptionDocumented": false
+   },
+   "siteCode": "SITE-A",
+   "category": "data_quality",
+   "recommendedReviewAction": "Confirm with the site that the participant attended; obtain the OTP/consent record. No OTP exception was documented for this visit.",
+   "siteId": "87d27e05-4891-520d-af18-01527d2df75b"
+  },
+  "source": "trialguard-integrity",
+  "fingerprint": "49de5f11fa94baae81d8e8b28cf2b6716b15ea225970d42cfb761c036d7b957b",
+  "resolvedBy": null,
+  "resolvedAt": null,
+  "resolutionNote": null,
+  "detectedAt": "2026-11-03T17:04:21.982Z",
+  "createdAt": "2026-11-03T17:04:21.986Z",
+  "updatedAt": "2026-11-03T17:04:21.986Z",
+  "resolvedByName": null,
+  "entityName": "week-12 · Savita Kapoor"
+ }
+]

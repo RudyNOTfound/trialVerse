@@ -13,7 +13,9 @@ import { DataTable } from '@/components/tables/DataTable';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Field, Select } from '@/components/ui/input';
+import { RiskDetailPanel } from '@/features/risk/RiskDetailPanel';
 import { useDirectory } from '@/hooks/useDirectory';
+import { riskSource, SOURCE_LABEL } from '@/lib/ml';
 import { formatDate, formatDateTime, formatMoney, humanize, shortId } from '@/utils/format';
 import type { RiskAssessment, RiskEntityType, RiskLevel } from '@/types/api';
 
@@ -30,7 +32,7 @@ export default function RiskPage() {
 
   return (
     <>
-      <PageHeader title="Risk assessments" description="Rule-based risk scores with the rules that triggered them."
+      <PageHeader title="Risk assessments" description="Every stored risk assessment, with the engine that produced it and the factors behind the score."
         actions={<Button onClick={() => setRunning(true)}><Play className="h-4 w-4" />Run assessment</Button>} />
       <FilterBar>
         <FilterSelect value={level} onChange={(v) => { setLevel(v); setPage(1); }} options={['low', 'medium', 'high', 'critical']} allLabel="All levels" label="Filter by level" />
@@ -42,7 +44,7 @@ export default function RiskPage() {
           { header: 'Entity', cell: (a) => <div><p className="font-medium">{entityLabel(a)}</p><p className="text-xs capitalize text-muted">{a.entityType}</p></div> },
           { header: 'Score', cell: (a) => <ScoreBar score={a.score} level={a.level} /> },
           { header: 'Level', cell: (a) => <StatusBadge value={a.level} /> },
-          { header: 'Triggered rules', cell: (a) => a.triggeredRules.length, hideOnMobile: true },
+          { header: 'Engine', cell: (a) => <span className="text-xs text-slate-600">{SOURCE_LABEL[riskSource(a)]}</span>, hideOnMobile: true },
           { header: 'Assessed', cell: (a) => formatDateTime(a.assessedAt), hideOnMobile: true },
         ]} />
       <RunDialog open={running} onOpenChange={setRunning} onDone={(id) => setSelected(id)} />
@@ -57,24 +59,7 @@ function DetailDialog({ id, onClose }: { id: string | null; onClose: () => void 
   return (
     <Dialog open={!!id} onOpenChange={(o) => !o && onClose()}>
       <DialogContent title="Risk assessment" description={d ? `${entityLabel(d)} · ${humanize(d.entityType)}` : undefined} className="max-w-xl">
-        {a.isLoading ? <Skeleton className="h-48" /> : a.error || !d ? <ErrorState error={a.error} onRetry={() => a.refetch()} /> : (
-          <div className="space-y-5">
-            <div className="flex items-center justify-between rounded-lg bg-slate-50 p-4">
-              <div><p className="text-xs text-muted">Risk score</p><p className="text-4xl font-semibold tabular-nums">{d.score}<span className="text-base font-normal text-muted"> / 100</span></p></div>
-              <StatusBadge value={d.level} />
-            </div>
-            <div><p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Explanation</p><p className="text-sm text-slate-700">{d.explanation}</p></div>
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">Triggered rules ({d.triggeredRules.length})</p>
-              {d.triggeredRules.length === 0 ? <p className="text-sm text-muted">No rules were triggered.</p> : (
-                <ul className="space-y-2">{d.triggeredRules.map((r) => (
-                  <li key={r.ruleId} className="rounded-lg border border-line p-3"><div className="flex items-start justify-between gap-3"><p className="text-sm font-medium">{r.name}</p><span className="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-semibold">+{r.weight}</span></div><p className="mt-1 text-xs text-muted">{r.detail}</p><p className="mt-1 font-mono text-[11px] text-slate-400">{r.ruleId}</p></li>
-                ))}</ul>
-              )}
-            </div>
-            <div className="text-xs text-muted">Engine {d.engine.name} v{d.engine.version}{d.fallback.used ? ` · fallback used${d.fallback.reason ? `: ${d.fallback.reason}` : ''}` : ''} · assessed {formatDateTime(d.assessedAt)}</div>
-          </div>
-        )}
+        {a.isLoading ? <Skeleton className="h-48" /> : a.error || !d ? <ErrorState error={a.error} onRetry={() => a.refetch()} /> : <RiskDetailPanel assessment={d} subject={entityLabel(d)} />}
       </DialogContent>
     </Dialog>
   );
@@ -98,7 +83,7 @@ function RunDialog({ open, onOpenChange, onDone }: { open: boolean; onOpenChange
     : (reimbs.data?.items ?? []).map((r) => ({ id: r.id, label: `${r.patientName ?? '—'} · ${r.category} · ${formatMoney(r.amountCents, r.currency)}` }));
   return (
     <Dialog open={open} onOpenChange={(o) => { if (o) setError(null); onOpenChange(o); }}>
-      <DialogContent title="Run risk assessment" description="Evaluates the current data with the active rule engine and stores the result.">
+      <DialogContent title="Run risk assessment" description="Evaluates the current data with the active risk engine (the ML model when it is enabled) and stores the result.">
         <div className="space-y-4">
           <Field label="Entity type"><Select value={type} onChange={(e) => { setType(e.target.value as RiskEntityType); setEntityId(''); }}><option value="patient">Patient</option><option value="visit">Visit</option><option value="reimbursement">Reimbursement</option></Select></Field>
           <Field label="Entity"><Select value={entityId} onChange={(e) => setEntityId(e.target.value)}><option value="">Select…</option>{options.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}</Select></Field>

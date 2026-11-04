@@ -11,6 +11,7 @@ npm install
 cp .env.example .env      # VITE_API_BASE_URL=http://localhost:3000/api/v1   (public config only, no secrets)
 npm run dev               # http://localhost:5173  (matches the backend's default CORS_ORIGINS)
 npm run typecheck && npm run build
+npm test                  # component, API-layer and access-control tests (no backend needed)
 ```
 
 Demo logins (seed data, password `DemoPass#2025`) appear as quick-fill chips on the login page **in dev builds only**.
@@ -20,7 +21,7 @@ Demo logins (seed data, password `DemoPass#2025`) appear as quick-fill chips on 
 | Workspace | Roles | Routes |
 |---|---|---|
 | Site operations `/app` | admin, coordinator, investigator | overview, `patients(/:id)`, `trials(/:id)`, `trials/:id/sites/:siteId`, `enrollments`, `visits(/:id)`, `reimbursements`, `actions`; **admin only:** `users` |
-| Sponsor oversight `/sponsor` | admin, investigator | overview, `trials(/:id)` and sites (read-only), `risk`, `integrity`, `audit`, `rules` (read-only) |
+| Trial oversight `/sponsor` (the URL prefix is historical; there is no sponsor role) | admin, investigator | overview, `trials(/:id)` and sites (read-only), `participant-risk`, `risk`, `integrity` (monitoring), `integrity/alerts` (alert log), `audit`, `rules` (read-only) |
 | Participant `/me` | patient | home, `visits(/:id)`, `reimbursements`, `profile` (mobile-first, bottom tab bar) |
 
 Public: `/login`, `/register` (participant self-registration; the new account shows an "awaiting activation" screen until staff link it to a patient record). Unauthenticated → `/login`; wrong role → `/forbidden`; expired/invalid token (401) → session cleared and back to login.
@@ -83,6 +84,31 @@ Verification and completion are separate operations. Handled outcomes: incorrect
 - **Trial/visit/action edits** follow backend rules: visits only while `scheduled`/`otp_pending` (admin, coordinator); actions only by creator, assignee or admin while open; trial code and site code are immutable; trial description/dates can be changed but not cleared (the API has no null for them).
 - **Rules screens are read-only** because the API exposes no way to change rules (server config only).
 - **Visit history** is the audit trail for that visit, so it is visible to admin/investigator only.
+
+## ML views (Phase 3)
+Everything below uses existing backend endpoints; the browser never talks to the Python service, and no score, factor or finding is computed or invented in the frontend (`src/lib/ml.ts` only classifies, groups and orders what the API returns).
+
+| Page | Route (roles) | Endpoints |
+|---|---|---|
+| Participant risk | `/app/risk` (admin, coordinator, investigator) and `/sponsor/participant-risk` (admin, investigator) | `GET /trials`, `GET /enrollments?trialId=`, `GET /risk/assessments?entityType=patient`, `POST /risk/assessments` |
+| Risk assessments (log) | `/sponsor/risk` | `GET/POST /risk/assessments`, `GET /risk/assessments/:id` |
+| Integrity monitoring | `/sponsor/integrity` (admin, investigator) | `GET /trials/:id/sites`, `GET /integrity/alerts`, `POST /integrity/scans` (`trialId`), `GET /audit?action=integrity.scan_completed` (scan history), `PATCH /integrity/alerts/:id` |
+| Trial oversight overview | `/sponsor` | `GET /stats/sponsor`, `GET /stats/operations`, `GET /integrity/alerts?entityType=site&status=open` |
+
+How to read them:
+* A risk result is labelled **ML model**, **Rule engine (ML not used)** or **Rule engine (ML unavailable)** from `engine` + `fallback`; the fallback reason is shown as returned. Factors are `triggeredRules` (for the model, signed contributions in points).
+* A scan result keeps four outcomes apart: *failed* (nothing was checked), *fallback* (ML checks did not run), *completed with no findings*, and *findings*. Coverage gaps (sites skipped for a missing timezone, truncation) are listed.
+* `POST /integrity/scans` with a `trialId` still raises audit-based alerts about the whole platform. The monitoring page therefore splits alerts into **trial findings** (alert evidence names one of the trial's sites) and **platform-wide alerts** (collapsed).
+* Participants have no access to any of this: no route, no nav entry, and the backend answers 403 (covered by tests).
+
+### Gaps found (documented, not worked around)
+* The API does not return the model's `recommendedActions` or `retentionRiskLevel` (the backend parses and drops them; decision D7). Only the engine's explanation text and the factors are shown.
+* There is no `sponsor` role: the sponsor workspace is for admin + investigator. A coordinator can assess risk but, as the backend enforces, cannot use integrity.
+* Alerts have no trial filter and scans are not stored with their trial; trial scoping is derived from the site ids in each alert's evidence, and scan history is read from the audit trail (it does not say which trial was scanned).
+* No participant-level retention trends: the API stores assessments but offers no time-series endpoint, so none is drawn.
+
+## Tests
+`npm test` (Vitest + Testing Library, jsdom). Component tests run through the real axios client, API modules and interceptors with only the transport stubbed; their fixtures (`src/test/fixtures`) are responses captured from the real backend + Python service. `src/test/live.test.ts` runs the frontend's API layer against a running stack (skipped unless `TRIALVERSE_LIVE_API` and `TRIALVERSE_LIVE_PASSWORD` are set). There is no browser (E2E) suite: layout and responsive behaviour are not covered by tests.
 
 ## Phase 3: backend integration
 
