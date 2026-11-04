@@ -1,0 +1,64 @@
+{
+ "id": "c9247a08-0566-4f72-8042-fc397654c508",
+ "entityType": "patient",
+ "entityId": "ad3d67fd-32ee-5047-8736-4e6b5be504b2",
+ "score": 69.2,
+ "level": "high",
+ "triggeredRules": [
+  {
+   "ruleId": "ml:missed_reminders",
+   "name": "missed_reminders",
+   "weight": 10.54,
+   "detail": "Missed reminders: 2 raises the model's risk score by 10.5 points"
+  },
+  {
+   "ruleId": "ml:reimbursement_delay_days",
+   "name": "reimbursement_delay_days",
+   "weight": 9.66,
+   "detail": "Reimbursement delay: 11.6 days raises the model's risk score by 9.7 points"
+  },
+  {
+   "ruleId": "ml:daily_wage_worker",
+   "name": "daily_wage_worker",
+   "weight": 8.69,
+   "detail": "Daily-wage worker: yes raises the model's risk score by 8.7 points"
+  },
+  {
+   "ruleId": "ml:distance_km",
+   "name": "distance_km",
+   "weight": 8.49,
+   "detail": "Distance from site: 40 km raises the model's risk score by 8.5 points"
+  },
+  {
+   "ruleId": "ml:side_effects_reported",
+   "name": "side_effects_reported",
+   "weight": 7.84,
+   "detail": "Side effects reported: yes raises the model's risk score by 7.8 points"
+  },
+  {
+   "ruleId": "ml:site_id",
+   "name": "site_id",
+   "weight": -2.19,
+   "detail": "Study site: SITE-A lowers the model's risk score by 2.2 points"
+  },
+  {
+   "ruleId": "ml:phone_changed",
+   "name": "phone_changed",
+   "weight": -1.26,
+   "detail": "Phone number changed: no lowers the model's risk score by 1.3 points"
+  }
+ ],
+ "explanation": "Predicted dropout risk 69/100; retention model category: high (model thresholds, separate from the platform's risk levels). Largest risk-increasing factors: missed reminders (+10.5), reimbursement delay (+9.7), daily-wage worker (+8.7). Factors are statistical associations in synthetic training data, not causes. Prototype; not validated for clinical use.",
+ "engine": {
+  "name": "retention-dropout-risk",
+  "version": "1.0.0+logistic_regression.0e359a5a"
+ },
+ "fallback": {
+  "used": false,
+  "reason": null
+ },
+ "assessedAt": "2026-11-03T17:04:09.866Z",
+ "requestedBy": "88788841-8ba8-411f-bc76-450b61b962e1",
+ "createdAt": "2026-11-03T17:04:09.866Z",
+ "entityName": "Ramesh Verma"
+}

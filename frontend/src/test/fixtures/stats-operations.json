@@ -1,0 +1,69 @@
+{
+ "generatedAt": "2026-11-03T17:32:06.178Z",
+ "patients": {
+  "total": 308,
+  "byStatus": {
+   "active": 238,
+   "withdrawn": 70,
+   "inactive": 0
+  }
+ },
+ "trials": {
+  "total": 4,
+  "byStatus": {
+   "draft": 1,
+   "active": 3,
+   "suspended": 0,
+   "completed": 0,
+   "terminated": 0
+  }
+ },
+ "enrollments": {
+  "total": 308,
+  "byStatus": {
+   "screening": 1,
+   "enrolled": 6,
+   "completed": 230,
+   "withdrawn": 71,
+   "screen_failed": 0
+  }
+ },
+ "visits": {
+  "total": 2416,
+  "byStatus": {
+   "scheduled": 5,
+   "otp_pending": 3,
+   "verified": 2,
+   "completed": 1969,
+   "missed": 436,
+   "cancelled": 1
+  },
+  "pastDueUnverified": 4
+ },
+ "actions": {
+  "total": 6,
+  "byStatus": {
+   "pending": 3,
+   "in_progress": 2,
+   "completed": 1,
+   "cancelled": 0
+  },
+  "overdue": 2
+ },
+ "reimbursements": {
+  "total": 1949,
+  "byStatus": {
+   "pending": 5,
+   "approved": 1942,
+   "rejected": 1,
+   "cancelled": 1
+  },
+  "byPaymentStatus": {
+   "none": 7,
+   "unpaid": 1,
+   "processing": 0,
+   "paid": 1940,
+   "failed": 1
+  }
+ }
+}
