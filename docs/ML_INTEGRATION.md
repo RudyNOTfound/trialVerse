@@ -2,7 +2,7 @@
 
 **Audience:** Person A (core backend) and Person B (ML models). This document is the contract. The code of record is [`src/ml/contracts.ts`](../src/ml/contracts.ts) (types + zod response schemas) and [`src/ml/httpModels.ts`](../src/ml/httpModels.ts).
 
-Phase 0 ships **no models**. The core app runs entirely on rule-based baseline engines; ML plugs in behind two interfaces with automatic fallback, so **no business logic changes are needed to add, swap or remove a model**.
+The core app has rule-based baseline engines; the Python service in `ml-service/` (retention model + integrity engine, contract v1.1) plugs in behind two interfaces with automatic, labelled fallback to those baselines, so **no business logic changes are needed to add, swap or remove a model**. Both models are trained on synthetic data and are not clinically validated.
 
 ## Responsibilities
 
