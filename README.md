@@ -1,6 +1,6 @@
-# TrialGuard — Backend (Phase 0)
+# TrialVerse / TrialGuard — clinical-trial retention and site-integrity platform (demo)
 
-Clinical trial management and integrity platform. This repository contains the **Phase 0 backend foundation**: REST API, relational data model, authentication/RBAC, OTP-verified visits, a tamper-evident audit chain, reimbursements, actions, baseline risk/integrity engines, and the integration contracts for separately-developed ML models.
+Clinical trial management and integrity platform. This repository contains the backend (the original Phase 0 foundation plus the ML integration and data-capture APIs): REST API, relational data model, authentication/RBAC, OTP-verified visits, a tamper-evident audit chain, reimbursements, actions, baseline risk/integrity engines, and the integration contracts for separately-developed ML models.
 
 The repository now holds three parts: this TypeScript backend (`src/`, port 3000), a React frontend (`frontend/`, Vite, port 5173) and the Python ML service (`ml-service/`, FastAPI). All data is **synthetic** and the models are **not clinically validated**; nothing here is clinical decision support. A flagged integrity finding is a prompt for review, never a confirmed finding of fraud.
 
@@ -171,7 +171,9 @@ Names are resolved with one batched `IN (...)` query per related table per respo
 npm test
 ```
 
-255 tests in 17 files run against in-memory SQLite (no external services): auth, RBAC, schema/constraints, patients & trials, visits, OTP generation/verification/expiry/reuse/lockout, audit hashing/verification/tamper detection/concurrency, reimbursements, actions, risk engine, integrity engine, ML contracts/fallback (against a real local HTTP model stub), API validation/errors/OpenAPI, seed, an end-to-end workflow, the Phase 3 additions (directory, account linking, embedded names, visit history, stats), and Phase 4 email OTP delivery (with a mocked provider, plus the real Resend SDK wrapper against a local stub server). **No test sends a real email.**
+`npm test` runs 344 tests in 23 files (a 24th file, `tests/live`, is skipped unless the Python service is running) against in-memory SQLite (no external services): auth, RBAC, schema/constraints, patients & trials, visits, OTP generation/verification/expiry/reuse/lockout, audit hashing/verification/tamper detection/concurrency, reimbursements, actions, risk engine, integrity engine, ML contracts/fallback (against a real local HTTP model stub), API validation/errors/OpenAPI, seed, an end-to-end workflow, the Phase 3 additions (directory, account linking, embedded names, visit history, stats), and Phase 4 email OTP delivery (with a mocked provider, plus the real Resend SDK wrapper against a local stub server). **No test sends a real email**; real Resend delivery has to be checked manually with `npm run email:test -- you@example.org` once `RESEND_API_KEY` and `OTP_FROM_EMAIL` are set.
+
+There is no lint script in this repository (`npm run typecheck` is the static check). Browser (E2E) tests are not automated; the capture and reminder flows were exercised by hand in Chrome and the rest through the API-level checks described in the PR history.
 
 ## Project layout
 
@@ -180,7 +182,7 @@ src/
   config/        env validation (zod), logger (pino, redacting)
   db/            connection, migration runner, migrations/*.sql
   middleware/    auth (JWT + RBAC), validate (zod), error handler
-  modules/       one folder per domain: schemas · service (business logic) · routes (HTTP only)
+  modules/       one folder per domain (also capture: measurements, ECG references, reminders, adverse events): schemas · service (business logic) · routes (HTTP only)
     auth users patients trials(+sites,enrollments) visits(+otp) audit reimbursements actions risk integrity shared
   ml/            contracts (types + zod schemas), http model clients, gateway (fallback)
   docs/          OpenAPI registry → Swagger
@@ -190,7 +192,7 @@ tests/           vitest suites
 docs/            architecture, schema, API, ML contract
 ```
 
-## Known limitations (Phase 0)
+## Known limitations
 
 - **Portal links survive patient deletion**: a soft-deleted patient keeps `user_id`, so that account cannot be linked to another patient record (the column is unique).
 - **Staff directory / linkable accounts expose names** (and, for unlinked registrations, email) to coordinators by design; scope is limited to what the linking and assignment workflows need.
@@ -205,3 +207,7 @@ docs/            architecture, schema, API, ML contract
 - **Dependency advisory**: `npm audit` reports GHSA-mrhx-c7xc-m3w5 (high) in `zod@3` (memory use when validating very large constrained collections). Exposure is bounded by the 100 KB JSON body limit; the fix requires migrating to zod 4 (breaking API changes, and `zod-to-json-schema` would be replaced by zod's built-in JSON Schema export). Planned for Phase 1.
 - Free-text fields are validated for length/type but not otherwise sanitised; clients must escape on render.
 - PII (names, DOB, contact) is stored unencrypted at the application level; use disk/volume encryption and add field-level encryption if required by your compliance regime. Audit metadata deliberately excludes direct identifiers.
+
+- **Synthetic data, not clinical validation.** The retention model (logistic regression) and the integrity engine are trained and tuned on synthetic data. Scores and findings are prompts for human review: an integrity finding is never a confirmed finding of fraud, and nothing here is clinical decision support.
+- **Fallback is labelled, not hidden.** If the Python service is unreachable or times out, the backend answers with its rule-based baseline engine and sets `fallback.used = true` with a reason; the UI shows this as "No ML result". A baseline result is not a model prediction (for example, Ramesh scores 69.2 / high with the model but 0 / low from the baseline).
+- **No ECG upload.** ECGs are registered as references to files under `ML_ECG_DIR`; captured records cannot be edited or deleted.
