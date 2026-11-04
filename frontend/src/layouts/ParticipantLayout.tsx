@@ -1,4 +1,4 @@
-import { CalendarDays, Home, Receipt, UserCircle, LogOut } from 'lucide-react';
+import { CalendarDays, ClipboardList, Home, Receipt, UserCircle, LogOut } from 'lucide-react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { ApiError } from '@/api/client';
 import { useMyPatient } from '@/features/participant/hooks';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 const TABS = [
   { to: '/me', label: 'Home', icon: Home, end: true },
   { to: '/me/visits', label: 'Visits', icon: CalendarDays },
+  { to: '/me/records', label: 'Records', icon: ClipboardList },
   { to: '/me/reimbursements', label: 'Claims', icon: Receipt },
   { to: '/me/profile', label: 'Profile', icon: UserCircle },
 ];
