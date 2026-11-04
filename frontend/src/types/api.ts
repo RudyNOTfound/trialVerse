@@ -73,6 +73,9 @@ export interface TrialSite {
   createdAt: string;
   updatedAt: string;
   principalInvestigatorName?: string | null;
+  /** ML inputs (backend migration 002). IANA timezone and the category the retention model knows the site by. */
+  timezone?: string | null;
+  mlSiteCategory?: string | null;
 }
 
 export type EnrollmentStatus = 'screening' | 'enrolled' | 'completed' | 'withdrawn' | 'screen_failed';
@@ -93,6 +96,8 @@ export interface Enrollment {
   trialCode?: string | null;
   trialTitle?: string | null;
   siteName?: string | null;
+  /** Coarse travel distance from the participant's home to the site (km). Model input; null = unknown. */
+  distanceToSiteKm?: number | null;
 }
 
 export type VisitStatus = 'scheduled' | 'otp_pending' | 'verified' | 'completed' | 'missed' | 'cancelled';
@@ -294,9 +299,19 @@ export interface ChainVerification {
   verifiedAt: string;
 }
 
+/** What a scan could and could not look at (only present on the response of POST /integrity/scans). */
+export interface ScanCoverage {
+  trialsScanned: number;
+  /** Site ids left out of the scan because they have no timezone / an invalid one / exceeded the size cap. */
+  sitesSkippedNoTimezone: string[];
+  sitesSkippedInvalidTimezone?: string[];
+  trialsWithoutData: string[];
+  truncated: Array<{ trialId: string; visits?: number; ecgs?: number; participants?: number }>;
+}
 export interface IntegrityScanSummary {
   engine: { name: string; version: string };
   fallback: { used: boolean; reason?: string };
+  coverage?: ScanCoverage;
   windowStart: string;
   windowEnd: string;
   eventsScanned: number;

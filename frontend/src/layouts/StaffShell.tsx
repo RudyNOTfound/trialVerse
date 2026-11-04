@@ -9,7 +9,7 @@ import { ROLE_LABEL } from '@/utils/roles';
 
 export interface NavItem { to: string; label: string; icon: ComponentType<{ className?: string }>; end?: boolean }
 
-/** Sidebar shell shared by the Operations and Sponsor workspaces. */
+/** Sidebar shell shared by the Operations and Oversight workspaces. */
 export function StaffShell({ nav, workspaceLabel, switcher }: { nav: NavItem[]; workspaceLabel: string; switcher?: { to: string; label: string } }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -17,7 +17,7 @@ export function StaffShell({ nav, workspaceLabel, switcher }: { nav: NavItem[]; 
   const sidebar = (
     <div className="flex h-full flex-col bg-navy-900 text-slate-300">
       <div className="flex h-16 items-center justify-between px-5"><Logo dark /><button className="lg:hidden" onClick={() => setOpen(false)} aria-label="Close menu"><X className="h-5 w-5" /></button></div>
-      <p className="px-5 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{workspaceLabel}</p>
+      <p className="px-5 pb-2 pt-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{workspaceLabel}</p>
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3" aria-label="Main">
         {nav.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} onClick={() => setOpen(false)}
