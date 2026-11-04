@@ -2,7 +2,22 @@
 
 Clinical trial management and integrity platform. This repository contains the **Phase 0 backend foundation**: REST API, relational data model, authentication/RBAC, OTP-verified visits, a tamper-evident audit chain, reimbursements, actions, baseline risk/integrity engines, and the integration contracts for separately-developed ML models.
 
-No frontend and no ML models are included by design.
+The repository now holds three parts: this TypeScript backend (`src/`, port 3000), a React frontend (`frontend/`, Vite, port 5173) and the Python ML service (`ml-service/`, FastAPI). All data is **synthetic** and the models are **not clinically validated**; nothing here is clinical decision support. A flagged integrity finding is a prompt for review, never a confirmed finding of fraud.
+
+## Run the full stack (local demo)
+
+```bash
+# 1. ML service (Python 3.9+; once: pip install -r ml-service/requirements.txt, python -m app.data_generation.generate_all)
+cd ml-service && ML_API_KEY=<key> ML_ECG_DIR=$PWD/generated_data uvicorn app.main:app --port 8001
+# 2. Backend: set ML_RISK_ENABLED / ML_INTEGRITY_ENABLED=true, ML_RISK_URL / ML_INTEGRITY_URL=http://127.0.0.1:8001, ML_API_KEY, ML_ECG_DIR in .env
+npm install && npm run migrate && npm run seed && npm run ml:demo-import && npm run dev
+# 3. Frontend (VITE_API_BASE_URL defaults to http://localhost:3000/api/v1)
+cd frontend && npm ci && npm run dev
+```
+
+Tests: `npm test` and `npm run typecheck` (backend), `cd frontend && npm test && npm run typecheck && npm run build`, `cd ml-service && python -m pytest`. Live backend↔Python tests: see the header of `tests/live/ml-live.test.ts`; live frontend API test: `frontend/src/test/live.test.ts`.
+
+**Data capture in the UI.** Staff patient page (`/app/patients/:id`) has measurement, ECG-reference, reminder and symptom panels; participants have *Records* (`/me/records`) to see their own data and report a symptom. ECGs are registered as a *reference* to a file under `ML_ECG_DIR`; there is no upload service.
 
 | | |
 |---|---|

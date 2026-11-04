@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatDate, formatDateTime, formatMoney } from '@/utils/format';
+import { CapturePanel } from '@/features/capture/CapturePanel';
 import { DeletePatientDialog } from './DeletePatientDialog';
 import { PatientFormDialog } from './PatientFormDialog';
 
@@ -73,6 +74,8 @@ export default function PatientDetailPage() {
           { header: 'Status', cell: (r) => <StatusBadge value={r.status} /> },
           { header: 'Payment', cell: (r) => <StatusBadge value={r.paymentStatus} />, hideOnMobile: true },
         ]} />
+      <p className="mb-2 mt-6 text-sm font-semibold">Clinical data capture</p>
+      <CapturePanel patientId={id} mode="staff" />
       <PatientFormDialog open={editing} onOpenChange={setEditing} patient={p} />
       <DeletePatientDialog patient={deleting ? p : null} onOpenChange={setDeleting} onDeleted={() => nav('/app/patients')} />
     </>
