@@ -1,6 +1,7 @@
 import type { AppConfig } from './config/env';
 import type { Logger } from './config/logger';
 import type { DB } from './utils/db';
+import type { EmailService } from './email/service';
 import type { MlGateway } from './ml/gateway';
 
 export type Role = 'admin' | 'coordinator' | 'investigator' | 'patient';
@@ -19,5 +20,6 @@ export interface Ctx {
   config: AppConfig;
   logger: Logger;
   ml: MlGateway;
+  email: EmailService;
   demoOtp: DemoOtpStore;
 }

@@ -26,6 +26,18 @@ export const updateUserBody = z
   .partial()
   .refine((v) => Object.keys(v).length > 0, 'At least one field is required');
 
+export const staffRoleSchema = z.enum(['admin', 'coordinator', 'investigator']);
+
+/** Staff directory: names only, no email, and never patient accounts. */
+export const directoryQuery = z.object({
+  ...pageQuery,
+  order: z.enum(['asc', 'desc']).default('asc'),
+  role: staffRoleSchema.optional(),
+  search: z.string().trim().max(100).optional(),
+  /** Inactive staff are hidden by default (pickers); set true to resolve historical names. */
+  includeInactive: z.enum(['true', 'false']).default('false'),
+});
+
 export const listUsersQuery = z.object({
   ...pageQuery,
   role: roleSchema.optional(),

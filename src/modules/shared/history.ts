@@ -1,9 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { mapRows, nowIso, type DB } from '../../utils/db';
+import { createLookups } from '../../utils/lookups';
 
 export interface StatusHistoryDto {
   id: string; entityType: string; entityId: string; field: string; fromStatus: string | null;
   toStatus: string; actorId: string | null; note: string | null; createdAt: string;
+  /** Embedded display name of the actor (additive, read-only). */
+  actorName?: string | null;
 }
 
 export function recordStatus(db: DB, e: {
@@ -16,7 +19,9 @@ export function recordStatus(db: DB, e: {
 }
 
 export function listStatusHistory(db: DB, entityType: string, entityId: string): StatusHistoryDto[] {
-  return mapRows<StatusHistoryDto>(
+  const rows = mapRows<StatusHistoryDto>(
     db.prepare('SELECT * FROM status_history WHERE entity_type = ? AND entity_id = ? ORDER BY created_at ASC, rowid ASC').all(entityType, entityId) as any[],
   );
+  const users = createLookups(db).users(rows.map((r) => r.actorId));
+  return rows.map((r) => ({ ...r, actorName: r.actorId ? users.get(r.actorId)?.name ?? null : null }));
 }

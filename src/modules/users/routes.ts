@@ -4,10 +4,18 @@ import { actorOf, authenticate, requireRole } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { asyncHandler, idParam, ok, paginated } from '../../utils/http';
 import type { UserService } from './service';
-import { createUserBody, listUsersQuery, updateUserBody } from './schemas';
+import { createUserBody, directoryQuery, listUsersQuery, updateUserBody } from './schemas';
 
 export function usersRouter(ctx: Ctx, users: UserService) {
   const r = Router();
+
+  // Declared BEFORE the admin gate: staff (not patients) may read the minimal directory.
+  r.get('/directory', authenticate(ctx), requireRole('admin', 'coordinator', 'investigator'), validate({ query: directoryQuery }), asyncHandler((req, res) => {
+    const q = req.valid!.query;
+    const { items, total } = users.directory(q);
+    paginated(res, items, q.page, q.pageSize, total);
+  }));
+
   r.use(authenticate(ctx), requireRole('admin'));
 
   r.get('/', validate({ query: listUsersQuery }), asyncHandler((req, res) => {

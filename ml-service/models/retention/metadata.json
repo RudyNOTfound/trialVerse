@@ -1,0 +1,141 @@
+{
+  "data": {
+    "path": "dropout_training.csv",
+    "prevalence": {
+      "test": 0.26,
+      "train": 0.26142857142857145,
+      "val": 0.26
+    },
+    "rows": 2000,
+    "sha256": "0e359a5a01ba4a7d7a6912a684e41858a89896ac642d961f45bc6904f7a455dc",
+    "split_sizes": {
+      "test": 300,
+      "train": 1400,
+      "val": 300
+    }
+  },
+  "features": {
+    "binary": [
+      "daily_wage_worker",
+      "side_effects_reported",
+      "phone_changed"
+    ],
+    "categorical": [
+      "site_id"
+    ],
+    "excluded": [
+      "participant_id",
+      "dropped_out",
+      "scheduled_visits"
+    ],
+    "known_sites": [
+      "SITE-A",
+      "SITE-B",
+      "SITE-C",
+      "SITE-D",
+      "SITE-E"
+    ],
+    "model_features": [
+      "age",
+      "distance_km",
+      "missed_reminders",
+      "reimbursement_delay_days",
+      "visits_missed",
+      "daily_wage_worker",
+      "side_effects_reported",
+      "phone_changed",
+      "site_id"
+    ],
+    "numeric": [
+      "age",
+      "distance_km",
+      "missed_reminders",
+      "reimbursement_delay_days",
+      "visits_missed"
+    ],
+    "optional_inputs": [
+      "age",
+      "reimbursement_delay_days"
+    ]
+  },
+  "library_versions": {
+    "numpy": "2.0.2",
+    "pandas": "2.3.3",
+    "python": "3.9.6",
+    "scikit-learn": "1.6.1",
+    "shap": "0.49.1"
+  },
+  "model_name": "retention-dropout-risk",
+  "model_version": "1.0.0+logistic_regression.0e359a5a",
+  "prototype_notice": "Trained on synthetic data. Prototype only; not validated for clinical-trial use.",
+  "random_seed": 42,
+  "selected_family": "logistic_regression",
+  "selected_params": {
+    "C": 10.0
+  },
+  "target": "dropped_out",
+  "test_metrics": {
+    "brier": 0.1376199698276137,
+    "pr_auc": 0.677625956157956,
+    "roc_auc": 0.8124855624855626
+  },
+  "thresholds": {
+    "criterion": "operational = argmax F2 on validation; high = lowest threshold above it with validation precision >= 0.75",
+    "high_threshold": 0.39,
+    "high_threshold_fallback_used": false,
+    "operational_threshold": 0.18
+  },
+  "training_config": {
+    "bootstrap_resamples": 1000,
+    "calibration_bins": 8,
+    "demo_participants_csv": "/Users/sharvari/trialVerse/ml-service/generated_data/demo/participants.csv",
+    "f_beta": 2.0,
+    "hgb_learning_rate": [
+      0.05,
+      0.1
+    ],
+    "hgb_max_depth": [
+      2,
+      3
+    ],
+    "hgb_max_iter": [
+      100,
+      200
+    ],
+    "high_precision_target": 0.75,
+    "importance_rows": 300,
+    "interventions": {
+      "distance_km": 30.0,
+      "missed_reminders": 2,
+      "reimbursement_delay_days": 10.0,
+      "visits_missed": 1
+    },
+    "lr_C": [
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ],
+    "min_factor_points": 0.5,
+    "model_dir": "/Users/sharvari/trialVerse/ml-service/models/retention",
+    "model_version_base": "1.0.0",
+    "report_dir": "/Users/sharvari/trialVerse/ml-service/reports/retention",
+    "seed": 42,
+    "shap_background_rows": 50,
+    "test_frac": 0.15,
+    "threshold_grid": [
+      0.05,
+      0.95,
+      0.01
+    ],
+    "top_factors": 5,
+    "train_frac": 0.7,
+    "training_csv": "/Users/sharvari/trialVerse/ml-service/generated_data/training/dropout_training.csv",
+    "val_frac": 0.15
+  },
+  "validation_metrics": {
+    "brier": 0.11618545429161507,
+    "pr_auc": 0.7607030167592632,
+    "roc_auc": 0.8752598752598753
+  }
+}

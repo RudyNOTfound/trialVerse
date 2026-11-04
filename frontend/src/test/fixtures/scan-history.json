@@ -1,0 +1,44 @@
+[
+ {
+  "seq": 223,
+  "id": "820cf1f7-4cd2-4164-b621-bd5cceb556e4",
+  "actorId": "4a896e28-90b2-4033-96db-57f851b3b47b",
+  "action": "integrity.scan_completed",
+  "entityType": "integrity_scan",
+  "entityId": "main",
+  "metadata": {
+   "engine": "trialguard-integrity",
+   "fallbackUsed": false,
+   "findings": 49,
+   "newAlerts": 49,
+   "sitesSkippedNoTimezone": [],
+   "trialsScanned": 1
+  },
+  "createdAt": "2026-11-03T17:04:21.987Z",
+  "prevHash": "8c4b7f61d3e0276b69f8f75225420b96375b30f7251275a054f4bae53023de05",
+  "hash": "28c80f8eb2326adc8a38fc3f90042a9dc92bfa333a495aa255fd1891cef690e4",
+  "actorName": "Dr. Priya Raman",
+  "actorRole": "investigator"
+ },
+ {
+  "seq": 143,
+  "id": "b5c485d6-1909-4dfe-89eb-2f230fd42074",
+  "actorId": "88788841-8ba8-411f-bc76-450b61b962e1",
+  "action": "integrity.scan_completed",
+  "entityType": "integrity_scan",
+  "entityId": "main",
+  "metadata": {
+   "engine": "baseline-integrity-rules",
+   "fallbackUsed": false,
+   "findings": 7,
+   "newAlerts": 7,
+   "sitesSkippedNoTimezone": [],
+   "trialsScanned": 0
+  },
+  "createdAt": "2026-11-03T17:03:43.012Z",
+  "prevHash": "afafbd7459427e308495b0e8384d672bf0e585838582b0729bda39f33f2e85bf",
+  "hash": "6bf7889e8e1deee4d0064ddaefeea5148d7f9071c251cfc1253f1d0d46dc6c3e",
+  "actorName": "Alex Admin",
+  "actorRole": "admin"
+ }
+]

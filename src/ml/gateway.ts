@@ -1,14 +1,19 @@
 import type { AppConfig } from '../config/env';
 import type { Logger } from '../config/logger';
 import {
-  MlError, levelForScore,
+  MlError, levelForScore, describeIntegrityRequestProblem, describeRiskRequestProblem,
   type IntegrityEngine, type IntegrityModel, type IntegrityScanRequest, type IntegrityScanResult,
   type RiskAssessmentResult, type RiskEngine, type RiskModel, type RiskPredictionRequest,
 } from './contracts';
 import { HttpIntegrityModel, HttpRiskModel } from './httpModels';
 
 /** What the rest of the application depends on. Nothing outside src/ml knows whether ML is enabled. */
-export interface MlGateway { risk: RiskEngine; integrity: IntegrityEngine }
+export interface MlGateway {
+  risk: RiskEngine;
+  integrity: IntegrityEngine;
+  /** True when an ML integrity model is configured. Only then is the (larger) `trialData` payload built and sent. */
+  integritySendsTrialData: boolean;
+}
 
 /** Adapts an ML RiskModel to the RiskEngine interface (the model's score is authoritative; level derived from it). */
 export class MlRiskEngine implements RiskEngine {
@@ -16,6 +21,9 @@ export class MlRiskEngine implements RiskEngine {
   get name() { return this.model.name; }
   get version() { return this.model.version; }
   async assess(req: RiskPredictionRequest): Promise<RiskAssessmentResult> {
+    // An incomplete participant would only earn an HTTP 422: don't send it, fall back with a precise, data-free reason.
+    const problem = describeRiskRequestProblem(req);
+    if (problem) throw new MlError('invalid_request', problem);
     const out = await this.model.predict(req);
     return {
       entityType: req.entityType,
@@ -36,6 +44,8 @@ export class MlIntegrityEngine implements IntegrityEngine {
   get name() { return this.model.name; }
   get version() { return this.model.version; }
   async scan(req: IntegrityScanRequest): Promise<IntegrityScanResult> {
+    const problem = describeIntegrityRequestProblem(req);
+    if (problem) throw new MlError('invalid_request', `trialData failed validation (${problem})`);
     const out = await this.model.detect(req);
     return {
       engine: { name: out.modelName, version: out.modelVersion },
@@ -105,17 +115,17 @@ export interface GatewayDeps {
 /** Wires baseline + optional ML engines. With ML disabled the baselines are used directly. */
 export function createMlGateway(d: GatewayDeps): MlGateway {
   const { config, logger } = d;
-  const http = (baseUrl: string) => ({ baseUrl, timeoutMs: config.ml.timeoutMs, apiKey: config.ml.apiKey });
+  const http = (baseUrl: string, timeoutMs: number) => ({ baseUrl, timeoutMs, apiKey: config.ml.apiKey });
 
   let riskModel = d.riskModel;
-  if (!riskModel && config.ml.risk.enabled && config.ml.risk.url) riskModel = new HttpRiskModel(http(config.ml.risk.url));
+  if (!riskModel && config.ml.risk.enabled && config.ml.risk.url) riskModel = new HttpRiskModel(http(config.ml.risk.url, config.ml.timeoutMs));
   let integrityModel = d.integrityModel;
-  if (!integrityModel && config.ml.integrity.enabled && config.ml.integrity.url) integrityModel = new HttpIntegrityModel(http(config.ml.integrity.url));
+  if (!integrityModel && config.ml.integrity.enabled && config.ml.integrity.url) integrityModel = new HttpIntegrityModel(http(config.ml.integrity.url, config.ml.integrityTimeoutMs));
 
   // Outer timeout slightly above the HTTP timeout so the HTTP layer reports the more precise error first.
-  const outer = config.ml.timeoutMs + 500;
   return {
-    risk: riskModel ? new ResilientRiskEngine(new MlRiskEngine(riskModel), d.baselineRisk, outer, logger) : d.baselineRisk,
-    integrity: integrityModel ? new ResilientIntegrityEngine(new MlIntegrityEngine(integrityModel), d.baselineIntegrity, outer, logger) : d.baselineIntegrity,
+    integritySendsTrialData: !!integrityModel,
+    risk: riskModel ? new ResilientRiskEngine(new MlRiskEngine(riskModel), d.baselineRisk, config.ml.timeoutMs + 500, logger) : d.baselineRisk,
+    integrity: integrityModel ? new ResilientIntegrityEngine(new MlIntegrityEngine(integrityModel), d.baselineIntegrity, config.ml.integrityTimeoutMs + 500, logger) : d.baselineIntegrity,
   };
 }

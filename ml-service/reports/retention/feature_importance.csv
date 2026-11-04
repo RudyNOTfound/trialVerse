@@ -1,0 +1,10 @@
+feature,label,mean_abs_contribution,mean_signed_contribution
+distance_km,Distance from site,10.9425,0.6264
+missed_reminders,Missed reminders,6.0729,1.5266
+daily_wage_worker,Daily-wage worker,4.5955,0.4016
+visits_missed,Previously missed visits,4.5631,0.0257
+reimbursement_delay_days,Reimbursement delay,3.7798,0.3447
+side_effects_reported,Side effects reported,2.9305,0.0359
+phone_changed,Phone number changed,2.0545,0.1783
+site_id,Study site,1.0145,0.1667
+age,Age,0.1904,0.0264

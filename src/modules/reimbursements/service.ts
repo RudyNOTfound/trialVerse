@@ -5,6 +5,7 @@ import { AppError } from '../../utils/errors';
 import { changedKeys, inTransaction, mapRow, mapRows, nowIso, orderBy, updateRow } from '../../utils/db';
 import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
 import { appendAuditEvent } from '../audit/chain';
+import { createLookups } from '../../utils/lookups';
 import { listStatusHistory, recordStatus } from '../shared/history';
 import type { PatientService } from '../patients/service';
 import type { createReimbursementBody, listReimbursementsQuery, updateReimbursementBody } from './schemas';
@@ -17,6 +18,8 @@ export interface ReimbursementDto {
   description: string | null; status: ReimbStatus; paymentStatus: PaymentStatus; requestedBy: string; reviewedBy: string | null;
   reviewedAt: string | null; rejectionReason: string | null; paidAt: string | null; transactionRef: string | null;
   createdAt: string; updatedAt: string;
+  /** Embedded display names (additive, read-only). */
+  patientName?: string | null; trialCode?: string | null; requestedByName?: string | null; reviewedByName?: string | null;
 }
 
 export const REIMBURSEMENT_TRANSITIONS: TransitionMap<ReimbStatus> = {
@@ -40,11 +43,23 @@ const COLS = `id, patient_id, visit_id, trial_id, category, amount_cents, curren
 
 export function createReimbursementService(ctx: Ctx, patients: PatientService) {
   const { db } = ctx;
+  const lookups = createLookups(db);
+
+  const withNames = (items: ReimbursementDto[]): ReimbursementDto[] => {
+    const p = lookups.patients(items.map((r) => r.patientId));
+    const t = lookups.trials(items.map((r) => r.trialId));
+    const u = lookups.users(items.flatMap((r) => [r.requestedBy, r.reviewedBy]));
+    return items.map((r) => ({
+      ...r,
+      patientName: p.get(r.patientId)?.name ?? null, trialCode: t.get(r.trialId)?.code ?? null,
+      requestedByName: u.get(r.requestedBy)?.name ?? null, reviewedByName: r.reviewedBy ? u.get(r.reviewedBy)?.name ?? null : null,
+    }));
+  };
 
   const get = (id: string): ReimbursementDto => {
     const r = mapRow<ReimbursementDto>(db.prepare(`SELECT ${COLS} FROM reimbursements WHERE id = ?`).get(id) as any);
     if (!r) throw AppError.notFound('Reimbursement');
-    return r;
+    return withNames([r])[0]!;
   };
 
   const assertAccess = (r: ReimbursementDto, actor: Actor) => {
@@ -101,7 +116,7 @@ export function createReimbursementService(ctx: Ctx, patients: PatientService) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM reimbursements ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { createdAt: 'created_at', amountCents: 'amount_cents' }, 'created_at');
       const rows = db.prepare(`SELECT ${COLS} FROM reimbursements ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<ReimbursementDto>(rows), total };
+      return { items: withNames(mapRows<ReimbursementDto>(rows)), total };
     },
 
     /** Only pending requests are editable; amount changes are called out in the audit trail. */
