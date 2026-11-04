@@ -5,7 +5,9 @@ import { CONTRACT_VERSION, type AuditEventSummary, type IntegrityFinding, type I
 import { sha256 } from '../../utils/crypto';
 import { inTransaction, mapRow, mapRows, nowIso, orderBy } from '../../utils/db';
 import { AppError } from '../../utils/errors';
+import { createLookups, entityLabels } from '../../utils/lookups';
 import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
+import { buildTrialData, listScannableTrials } from './trialData';
 import { appendAuditEvent, rowToEvent, verifyChain } from '../audit/chain';
 import type { listAlertsQuery, scanBody } from './schemas';
 
@@ -15,6 +17,8 @@ export interface IntegrityAlertDto {
   id: string; ruleId: string; entityType: string; entityId: string; severity: string; status: AlertStatus; message: string;
   details: Record<string, unknown>; source: string; resolvedBy: string | null; resolvedAt: string | null; resolutionNote: string | null;
   detectedAt: string; createdAt: string; updatedAt: string;
+  /** Embedded display names (additive, read-only). */
+  resolvedByName?: string | null; entityName?: string | null;
 }
 
 export const ALERT_TRANSITIONS: TransitionMap<AlertStatus> = {
@@ -28,25 +32,48 @@ const MAX_EVENTS = 5000;
 const MAX_ROWS = 2000;
 const SEVERITY_RANK = `CASE severity WHEN 'critical' THEN 4 WHEN 'high' THEN 3 WHEN 'medium' THEN 2 ELSE 1 END`;
 
+/** What was (not) sent to the ML service, recorded in the audit trail so a partial scan is never silent. */
+export interface ScanMeta {
+  trialsScanned: number;
+  sitesSkippedNoTimezone: string[];
+  sitesSkippedInvalidTimezone: string[];
+  trialsWithoutData: string[];
+  truncated: Array<{ trialId: string; visits?: number; ecgs?: number; participants?: number }>;
+}
+
 export interface ScanSummary {
   engine: { name: string; version: string };
   fallback: { used: boolean; reason?: string };
   windowStart: string; windowEnd: string;
   eventsScanned: number; findings: number; newAlerts: number; existingAlerts: number;
   alerts: IntegrityAlertDto[];
+  /** Trial-level coverage of this scan. */
+  coverage?: ScanMeta;
 }
 
 export function createIntegrityService(ctx: Ctx) {
   const { db } = ctx;
 
+  const lookups = createLookups(db);
+  const withNames = (items: IntegrityAlertDto[]): IntegrityAlertDto[] => {
+    const u = lookups.users(items.map((a) => a.resolvedBy));
+    const labels = entityLabels(db, items);
+    return items.map((a) => ({ ...a, resolvedByName: a.resolvedBy ? u.get(a.resolvedBy)?.name ?? null : null, entityName: labels.get(`${a.entityType}:${a.entityId}`) ?? null }));
+  };
+
   const get = (id: string): IntegrityAlertDto => {
     const a = mapRow<IntegrityAlertDto>(db.prepare('SELECT * FROM integrity_alerts WHERE id = ?').get(id) as any, ['details']);
     if (!a) throw AppError.notFound('Integrity alert');
-    return a;
+    return withNames([a])[0]!;
   };
 
-  /** Assembles the engine input (also the ML contract payload) from the database. */
-  function buildScanRequest(windowHours: number, now = new Date()): { request: IntegrityScanRequest; eventsScanned: number } {
+  /**
+   * Assembles the engine input (also the ML contract payload) from the database.
+   * Returns one request per trial that has trial-level data (the contract carries one trial per request); the FIRST one also carries
+   * the audit sections (events/reimbursements/openVisits), the others carry the chain verdict only so audit rules are not run twice.
+   * With ML integrity off, or when no trial is scannable, there is a single audit-only request (the v1.0 behaviour).
+   */
+  function buildScanRequests(windowHours: number, trialId: string | undefined, now = new Date()): { requests: IntegrityScanRequest[]; eventsScanned: number; meta: ScanMeta } {
     const windowEnd = now.toISOString();
     const windowStart = new Date(now.getTime() - windowHours * 3600_000).toISOString();
     const rows = db.prepare('SELECT * FROM audit_logs WHERE created_at >= ? ORDER BY seq DESC LIMIT ?').all(windowStart, MAX_EVENTS) as any[];
@@ -65,18 +92,45 @@ export function createIntegrityService(ctx: Ctx) {
       `SELECT id, patient_id, status, scheduled_at, verified_at FROM visits WHERE status IN ('scheduled','otp_pending') AND scheduled_at < ? ORDER BY scheduled_at LIMIT ?`,
     ).all(windowEnd, MAX_ROWS) as any[]).map((v) => ({ id: v.id, patientId: v.patient_id, status: v.status, scheduledAt: v.scheduled_at, verifiedAt: v.verified_at }));
     const chain = verifyChain(db);
+    const base = {
+      contractVersion: CONTRACT_VERSION, windowStart, windowEnd,
+      chain: { valid: chain.valid, eventsChecked: chain.eventsChecked, errorCount: chain.errors.length, firstError: chain.errors[0] ? { type: chain.errors[0].type, seq: chain.errors[0].seq, message: chain.errors[0].message } : null },
+    };
+    const auditRequest: IntegrityScanRequest = { ...base, requestId: randomUUID(), events, reimbursements, openVisits };
+
+    const meta: ScanMeta = { trialsScanned: 0, sitesSkippedNoTimezone: [], sitesSkippedInvalidTimezone: [], trialsWithoutData: [], truncated: [] };
+    const requests: IntegrityScanRequest[] = [];
+    if (ctx.ml.integritySendsTrialData) {
+      for (const id of trialId ? [trialId] : listScannableTrials(db)) {
+        const built = buildTrialData(db, id, now);
+        meta.sitesSkippedNoTimezone.push(...built.meta.sitesSkippedNoTimezone);
+        meta.sitesSkippedInvalidTimezone.push(...built.meta.sitesSkippedInvalidTimezone);
+        if (built.meta.truncated) meta.truncated.push({ trialId: id, ...built.meta.truncated });
+        if (!built.trialData) { meta.trialsWithoutData.push(id); continue; }
+        meta.trialsScanned++;
+        requests.push(requests.length === 0 ? { ...auditRequest, trialData: built.trialData }
+          : { ...base, requestId: randomUUID(), events: [], reimbursements: [], openVisits: [], trialData: built.trialData });
+      }
+    }
+    if (requests.length === 0) requests.push(auditRequest);
+    return { requests, eventsScanned: events.length, meta };
+  }
+
+  /** Merges the results of the per-trial requests into one scan result. Any fallback marks the whole scan as (partly) fallback. */
+  function mergeResults(results: IntegrityScanResult[]): IntegrityScanResult {
+    if (results.length === 1) return results[0]!;
+    const primary = results.find((r) => !r.fallback.used) ?? results[0]!;
+    const reasons = [...new Set(results.filter((r) => r.fallback.used).map((r) => r.fallback.reason ?? 'fallback'))];
     return {
-      eventsScanned: events.length,
-      request: {
-        contractVersion: CONTRACT_VERSION, requestId: randomUUID(), windowStart, windowEnd, events, reimbursements, openVisits,
-        chain: { valid: chain.valid, eventsChecked: chain.eventsChecked, errorCount: chain.errors.length, firstError: chain.errors[0] ? { type: chain.errors[0].type, seq: chain.errors[0].seq, message: chain.errors[0].message } : null },
-      },
+      engine: primary.engine, windowStart: primary.windowStart, windowEnd: primary.windowEnd, scannedAt: new Date().toISOString(),
+      findings: results.flatMap((r) => r.findings),
+      fallback: reasons.length ? { used: true, reason: reasons.join(' | ').slice(0, 500) } : { used: false },
     };
   }
 
   const fingerprint = (source: string, f: IntegrityFinding) => sha256([source, f.ruleId, f.entityType, f.entityId, f.dedupeKey ?? ''].join('|'));
 
-  function persistFindings(result: IntegrityScanResult, actor: Actor | null): { created: string[]; existing: number } {
+  function persistFindings(result: IntegrityScanResult, actor: Actor | null, meta?: ScanMeta): { created: string[]; existing: number } {
     const created: string[] = [];
     let existing = 0;
     inTransaction(db, () => {
@@ -98,7 +152,10 @@ export function createIntegrityService(ctx: Ctx) {
       }
       appendAuditEvent(db, {
         actorId: actor?.id ?? null, action: 'integrity.scan_completed', entityType: 'integrity_scan', entityId: 'main',
-        metadata: { engine: result.engine.name, findings: result.findings.length, newAlerts: created.length, fallbackUsed: result.fallback.used },
+        metadata: {
+          engine: result.engine.name, findings: result.findings.length, newAlerts: created.length, fallbackUsed: result.fallback.used,
+          ...(meta ? { trialsScanned: meta.trialsScanned, sitesSkippedNoTimezone: meta.sitesSkippedNoTimezone, ...(meta.sitesSkippedInvalidTimezone.length ? { sitesSkippedInvalidTimezone: meta.sitesSkippedInvalidTimezone } : {}), ...(meta.truncated.length ? { truncated: meta.truncated } : {}) } : {}),
+        },
       });
     });
     return { created, existing };
@@ -108,12 +165,14 @@ export function createIntegrityService(ctx: Ctx) {
     get,
 
     async scan(input: z.infer<typeof scanBody>, actor: Actor | null): Promise<ScanSummary> {
-      const { request, eventsScanned } = buildScanRequest(input.windowHours);
-      const result = await ctx.ml.integrity.scan(request);
-      const { created, existing } = persistFindings(result, actor);
+      const { requests, eventsScanned, meta } = buildScanRequests(input.windowHours, input.trialId);
+      const results: IntegrityScanResult[] = [];
+      for (const request of requests) results.push(await ctx.ml.integrity.scan(request)); // sequential: each trial is one bounded request
+      const result = mergeResults(results);
+      const { created, existing } = persistFindings(result, actor, meta);
       return {
         engine: result.engine, fallback: result.fallback, windowStart: result.windowStart, windowEnd: result.windowEnd,
-        eventsScanned, findings: result.findings.length, newAlerts: created.length, existingAlerts: existing, alerts: created.map(get),
+        eventsScanned, findings: result.findings.length, newAlerts: created.length, existingAlerts: existing, alerts: created.map(get), coverage: meta,
       };
     },
 
@@ -127,7 +186,7 @@ export function createIntegrityService(ctx: Ctx) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM integrity_alerts ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { detectedAt: 'detected_at', severity: SEVERITY_RANK }, 'detected_at');
       const rows = db.prepare(`SELECT * FROM integrity_alerts ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<IntegrityAlertDto>(rows, ['details']), total };
+      return { items: withNames(mapRows<IntegrityAlertDto>(rows, ['details'])), total };
     },
 
     updateStatus(id: string, status: AlertStatus, note: string | undefined, actor: Actor): IntegrityAlertDto {

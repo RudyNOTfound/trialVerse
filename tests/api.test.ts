@@ -108,7 +108,7 @@ describe('API conventions, validation and error handling', () => {
     const mounted = new Set<string>();
     const mounts: Record<string, string> = {
       '/auth': '/auth', '/users': '/users', '/patients': '/patients', '/trials': '/trials', '/enrollments': '/enrollments', '/visits': '/visits',
-      '/audit': '/audit', '/reimbursements': '/reimbursements', '/actions': '/actions', '/risk': '/risk', '/integrity': '/integrity', '/dev': '/dev',
+      '/audit': '/audit', '/reimbursements': '/reimbursements', '/actions': '/actions', '/risk': '/risk', '/integrity': '/integrity', '/stats': '/stats', '/dev': '/dev',
     };
     const walk = (stack: any[], prefix: string) => {
       for (const layer of stack) {

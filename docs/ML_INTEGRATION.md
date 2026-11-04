@@ -1,8 +1,8 @@
-# ML integration contract (v1.0)
+# ML integration contract (v1.1)
 
 **Audience:** Person A (core backend) and Person B (ML models). This document is the contract. The code of record is [`src/ml/contracts.ts`](../src/ml/contracts.ts) (types + zod response schemas) and [`src/ml/httpModels.ts`](../src/ml/httpModels.ts).
 
-Phase 0 ships **no models**. The core app runs entirely on rule-based baseline engines; ML plugs in behind two interfaces with automatic fallback, so **no business logic changes are needed to add, swap or remove a model**.
+The core app has rule-based baseline engines; the Python service in `ml-service/` (retention model + integrity engine, contract v1.1) plugs in behind two interfaces with automatic, labelled fallback to those baselines, so **no business logic changes are needed to add, swap or remove a model**. Both models are trained on synthetic data and are not clinically validated.
 
 ## Responsibilities
 
@@ -195,3 +195,120 @@ require('http').createServer((req, res) => {
   });
 }).listen(8001);
 ```
+
+
+---
+
+## Contract v1.1 (Phase 6) — what the backend sends to the Python service
+
+Version `1.1` is additive over `1.0` (peers compare the MAJOR number only). Person B's Pydantic models in
+`ml-service/app/api/schemas.py` are the source of truth; `src/ml/contracts.ts` mirrors them and is checked before every send.
+
+### Risk (`entityType: "patient"`, `featureSchemaVersion: "2"`)
+`visit` and `reimbursement` requests stay on schema `"1"`. A participant is scored by the retention (Logistic Regression) model only
+when every REQUIRED input is known; otherwise the request is not sent and the baseline answers with a reason such as
+`invalid_request: missing required features: site_id`. Unknown is `null`, never `0`.
+
+| Feature | Source |
+|---|---|
+| `site_id` | `trial_sites.ml_site_category` of the participant's current enrollment (unmapped ⇒ null) |
+| `age` | `patients.date_of_birth` |
+| `distance_km` | `enrollments.distance_to_site_km` (`PATCH /enrollments/:id`) |
+| `daily_wage_worker` | `patients.daily_wage_worker` (create/`PATCH /patients/:id`; null = unknown) |
+| `scheduled_visits`, `visits_missed` | visits of the enrollment (cancelled excluded; missed = status `missed`) |
+| `missed_reminders` | `visit_reminders` with resolved outcome; none resolved ⇒ null |
+| `reimbursement_delay_days` | mean of `paid_at - created_at` over paid reimbursements; none ⇒ null |
+| `side_effects_reported` | any row in `adverse_event_reports` |
+| `phone_changed` | a `patient.updated` audit event that changed `phone` |
+
+A 422 from Python is surfaced as a safe summary (error code, feature names, field paths — never messages or values), e.g.
+`model_error: Model service rejected the request (HTTP 422: unknown_site_category)`.
+
+### Integrity (`trialData`)
+`src/modules/integrity/trialData.ts` builds, per trial and with a constant number of queries: `sites` (IANA `timezone`,
+`mlSiteCategory`), `participants` (`droppedOut` from enrollment status `withdrawn`), `visits` (UTC instants with offsets,
+`otpVerified`, `otpExceptionReason`, measurements, `ecgRecordId`) and `ecgs` (`imageRef` relative to `ML_ECG_DIR`). Caps:
+200 sites, 5000 participants, 20000 visits, 2000 ECGs. A site without a timezone is left out together with its participants,
+visits and ECGs, and its id is recorded in `integrity.scan_completed` metadata (`sitesSkippedNoTimezone`) and in the scan response `coverage`.
+
+### OTP exception
+`POST /visits/:id/status` with `{ "status": "completed", "otpException": { "reasonCode": "...", "note": "..." } }`
+(admin/investigator only) completes a visit that was never OTP-verified. The visit is never marked verified
+(`verifiedAt` stays null, `otpVerified: false`); the exception is stored in `visit_otp_exceptions`, audited as
+`visit.completed_without_otp` (reason code only — the free-text note stays in the database and is hidden from other roles) and sent
+to Python as `otpVerified:false` + `otpExceptionReason`, which is evidence for reviewers and never lowers a finding.
+Without `otpException` the usual 409 stays.
+
+### Configuration
+| Variable | Meaning |
+|---|---|
+| `ML_RISK_URL`, `ML_INTEGRITY_URL`, `*_ENABLED` | where/whether to call the service |
+| `ML_API_KEY` | bearer token; must equal the Python service's `ML_API_KEY`. Wrong key ⇒ HTTP 401 ⇒ baseline fallback (`unauthorized`) |
+| `ML_TIMEOUT_MS` | risk timeout (default 3000) |
+| `ML_INTEGRITY_TIMEOUT_MS` | integrity timeout (default 10000) — scans send the whole trial |
+| `ML_ECG_DIR` | directory with the ECG images, must be the same directory the Python service uses (its `ML_ECG_DIR`) |
+
+Fallback is always marked: `fallback: { used: true, reason }` with reasons `unavailable`, `timeout`, `unauthorized`,
+`invalid_request` (refused before sending) or `model_error` (including Python's 422).
+
+### Running against the real Python service
+```bash
+# 1. Python (once): a venv with the versions the shipped model was trained with
+python3 -m venv ~/.venv-ml && ~/.venv-ml/bin/pip install -r ml-service/requirements.txt \
+  scikit-learn==1.6.1 numpy==2.0.2 pandas==2.3.3 shap==0.49.1      # newer scikit-learn cannot load pipeline.joblib
+# 2. dataset + service
+cd ml-service && python -m app.data_generation.generate_all
+ML_API_KEY=<test key> ML_ECG_DIR=$PWD/generated_data uvicorn app.main:app --port 8011
+# 3. demo data into the backend database, then use the app normally. Best order: npm run seed:reset && npm run seed, then:
+npm run ml:demo-import   # same demo logins as the seed (admin@trialguard.demo, ... / DemoPass#2025); safe to repeat
+#    Every imported record has a deterministic UUID (mlDemoId in src/seed/mlDemoImport.ts); the generator's id ('P-A-001') is the
+#    patient's subject_code. Nothing existing is changed or deleted; real conflicts (another GLU-301 trial, a taken subject code) are errors.
+# 4. live tests (skipped unless ML_LIVE_URL and ML_LIVE_DATA are set)
+ML_LIVE_URL=http://127.0.0.1:8011 ML_LIVE_KEY=<test key> ML_LIVE_DATA=$PWD/ml-service/generated_data \
+  ML_LIVE_LOG=<service log file> npx vitest run tests/live
+```
+
+### Capturing the model inputs over HTTP (Phase 2)
+These endpoints fill the tables the payload builders already read, so a captured record is part of the very next risk assessment or
+integrity scan. They accept only what migration 002 can store: no invented fields, statuses, units or scales. All require a bearer
+token; request/response schemas are in Swagger (`GET /api/docs`, tag **Capture**) and the route table in `docs/API_ENDPOINTS.md`.
+The envelope is the usual `{ success, data, meta? }`; errors are 400 (validation), 401 (no/invalid token), 403 (role, or a participant using
+somebody else's patient id), 404 (unknown record, or a visit/enrollment that is not this patient's; a participant asking for somebody
+else's *record* also gets 404), 409 (duplicate, wrong state).
+
+| Data | Endpoints | Write | Read | Lands in | Reaches the model as |
+|---|---|---|---|---|---|
+| Measurements | `POST/GET /patients/{patientId}/measurements`, `GET /measurements/{id}` | admin, coordinator, investigator | staff, participant (own) | `visit_measurements` | `trialData.visits[]`: `performedAt`, `enteredAt`, `systolicBp`, `diastolicBp`, `heartRate`, `weightKg`, `glucoseMgDl` |
+| ECG references | `POST/GET /patients/{patientId}/ecgs`, `GET /ecgs/{id}` | admin, coordinator, investigator | staff, participant (own, without the storage path) | `visit_ecgs` | `trialData.visits[].ecgRecordId` and `trialData.ecgs[]` (`imageRef` = `fileRef`) |
+| Reminders | `POST/GET /patients/{patientId}/reminders`, `GET/PATCH /reminders/{id}` | admin, coordinator | staff, participant (own) | `visit_reminders` | risk feature `missed_reminders` |
+| Adverse events | `POST/GET /patients/{patientId}/adverse-events`, `GET /adverse-events/{id}` | staff, participant (own) | staff, participant (own) | `adverse_event_reports` | risk feature `side_effects_reported` |
+
+* **Measurements.** One set per visit (the measurement id is the visit id; a second one is 409). Units are fixed and never converted
+  (BP mmHg, heart rate bpm, weight kg, glucose mg/dL). Values only have to be positive: an implausible value stays storable, flagging it
+  is the integrity engine's job. `enteredAt`/`enteredBy` are set by the server (a client-supplied entry time could be forged and the
+  engine compares it with `performedAt`; sending either is a 400). Not for `missed`/`cancelled` visits.
+* **ECG references.** The project stores a *reference*: `fileRef` is relative to the shared `ML_ECG_DIR` (absolute paths, `..`,
+  backslashes and empty segments are rejected; the file is not opened here, a missing file becomes an `ecg.file_unavailable` finding at
+  scan time). Several records may use the same `fileRef` on purpose: re-used ECGs are what the Python duplicate detection finds.
+  One per visit. Optional `fileSha256` (64 lowercase hex, stays in the backend) and `recordedAt`.
+* **Reminders.** Created as `sent` (`channel`: sms | ivr | call | other; give `enrollmentId` or `visitId`), resolved **once** by
+  `PATCH` to `acknowledged` (optional `acknowledgedAt`, default now, not before `sentAt`, not in the future) or `missed`. A resolved
+  reminder is final (409 `INVALID_STATE_TRANSITION`). Only resolved reminders count: with none resolved `missed_reminders` is unknown
+  (null), the backend does not send an incomplete participant, and the baseline engine answers. Participants cannot write reminders (they
+  could otherwise lower their own risk), and investigators do not run reminder operations.
+* **Adverse events.** The schema records *that* an event was reported and when; it has no severity, type or free text, so none is
+  accepted, and there is no update endpoint (append-only; the audit trail is the history). A participant may report for themselves only.
+* **Scoping.** The application has no per-staff site assignment, so staff roles are trial-wide. What is enforced: the patient in the URL
+  must exist, a participant can only use their own patient id (403 otherwise), and every visit/enrollment in a body must belong to that
+  patient (404 otherwise).
+* **Audit.** `measurement.recorded`, `ecg.registered`, `reminder.created`, `reminder.outcome_recorded` (from/to) and
+  `adverse_event.reported`, with ids and field *names* only: measurement values never enter the hash-chained audit metadata.
+
+Tests: `tests/capture.test.ts` (HTTP validation, roles, isolation, audit, and the payload tests with in-process recording models, which
+show what the backend would send) and `tests/live/ml-live.test.ts` ("data captured through the capture APIs ...", which runs the same
+steps against the real FastAPI service).
+
+### Not implemented
+Optional `risk_assessments.engine_extras` (decision D7) was not added. There is no edit or delete for captured measurements, ECG
+references or adverse events (corrections would need a decided audit model), and no upload of ECG image bytes (the project shares a
+directory with the Python service and stores references).

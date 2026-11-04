@@ -5,15 +5,20 @@ import { createActionBody, actionStatusBody, listActionsQuery, updateActionBody 
 import { auditListQuery } from '../modules/audit/schemas';
 import { loginBody, registerBody } from '../modules/auth/schemas';
 import { listAlertsQuery, scanBody, updateAlertBody } from '../modules/integrity/schemas';
-import { createPatientBody, listPatientsQuery, updatePatientBody } from '../modules/patients/schemas';
+import { createPatientBody, linkableAccountsQuery, linkAccountBody, listPatientsQuery, updatePatientBody } from '../modules/patients/schemas';
 import {
   createReimbursementBody, listReimbursementsQuery, noteBody, paymentBody, rejectBody, updateReimbursementBody,
 } from '../modules/reimbursements/schemas';
+import {
+  createAdverseEventBody, createEcgBody, createMeasurementBody, createReminderBody, listAdverseEventsQuery, listEcgsQuery, listMeasurementsQuery,
+  listRemindersQuery, updateReminderBody,
+} from '../modules/capture/schemas';
 import { assessBody, listAssessmentsQuery } from '../modules/risk/schemas';
+import { sponsorStatsQuery, visitStatsQuery } from '../modules/stats/schemas';
 import {
   createEnrollmentBody, createSiteBody, createTrialBody, listEnrollmentsQuery, listTrialsQuery, updateEnrollmentBody, updateSiteBody, updateTrialBody,
 } from '../modules/trials/schemas';
-import { createUserBody, listUsersQuery, updateUserBody } from '../modules/users/schemas';
+import { createUserBody, directoryQuery, listUsersQuery, updateUserBody } from '../modules/users/schemas';
 import { createVisitBody, listVisitsQuery, updateVisitBody, verifyOtpBody, visitStatusBody } from '../modules/visits/schemas';
 
 type Method = 'get' | 'post' | 'patch' | 'delete';
@@ -34,6 +39,7 @@ const ROUTES: Array<[Method, string, Doc]> = [
 
   ['get', '/users', { tag: 'Users', summary: 'List users', roles: A, query: listUsersQuery, paginated: true }],
   ['post', '/users', { tag: 'Users', summary: 'Create a user with any role', roles: A, body: createUserBody, status: 201 }],
+  ['get', '/users/directory', { tag: 'Users', summary: 'Minimal staff directory for pickers and name display', roles: STAFF, query: directoryQuery, paginated: true, description: 'Returns only `id`, `fullName`, `role`, `isActive` for admin/coordinator/investigator accounts. Never returns email, patient accounts or credentials. Inactive staff are excluded unless `includeInactive=true`.' }],
   ['get', '/users/{id}', { tag: 'Users', summary: 'Get a user', roles: A }],
   ['patch', '/users/{id}', { tag: 'Users', summary: 'Update name, role or active flag', roles: A, body: updateUserBody }],
 
@@ -41,6 +47,9 @@ const ROUTES: Array<[Method, string, Doc]> = [
   ['post', '/patients', { tag: 'Patients', summary: 'Create a patient', roles: `${A}, ${C}`, body: createPatientBody, status: 201 }],
   ['get', '/patients/me', { tag: 'Patients', summary: 'Own patient record', roles: P }],
   ['get', '/patients/{id}', { tag: 'Patients', summary: 'Get a patient (patients: own record only)', roles: `${STAFF}, ${P} (own)` }],
+  ['get', '/patients/linkable-accounts', { tag: 'Patients', summary: 'Registered patient accounts that are not yet linked to a patient record', roles: `${A}, ${C}`, query: linkableAccountsQuery, paginated: true, description: 'Active `patient`-role users with no patient record. Returns `id`, `fullName`, `email`, `createdAt` only; this is the narrow view coordinators use instead of the admin-only user list.' }],
+  ['post', '/patients/{id}/account', { tag: 'Patients', summary: 'Link a registered portal account to this patient', roles: `${A}, ${C}`, body: linkAccountBody, status: 201, description: 'Validates that the user exists, is active, has the patient role, is not linked to another patient, and that this patient has no link yet (409 otherwise). Audited as `patient.account_linked`.' }],
+  ['delete', '/patients/{id}/account', { tag: 'Patients', summary: 'Remove the portal link from this patient', roles: `${A}, ${C}`, description: '409 if there is no link. Audited as `patient.account_unlinked`.' }],
   ['patch', '/patients/{id}', { tag: 'Patients', summary: 'Update a patient / link a user account', roles: `${A}, ${C}`, body: updatePatientBody }],
   ['delete', '/patients/{id}', { tag: 'Patients', summary: 'Soft-delete a patient with no enrollments', roles: A }],
 
@@ -62,12 +71,28 @@ const ROUTES: Array<[Method, string, Doc]> = [
   ['get', '/visits', { tag: 'Visits', summary: 'List visits (patients see their own)', roles: `${STAFF}, ${P} (own)`, query: listVisitsQuery, paginated: true }],
   ['post', '/visits', { tag: 'Visits', summary: 'Schedule a visit for an enrollment', roles: `${A}, ${C}`, body: createVisitBody, status: 201 }],
   ['get', '/visits/{id}', { tag: 'Visits', summary: 'Get a visit', roles: `${STAFF}, ${P} (own)` }],
+  ['get', '/visits/{id}/history', { tag: 'Visits', summary: 'Visit history: status changes, edits and OTP events', roles: STAFF, description: 'Read-only projection of the audit trail for one visit, oldest first, with actor names. Exposes a fixed allow-list of fields (no hashes, no raw metadata, never an OTP). Participants receive 403.' }],
   ['patch', '/visits/{id}', { tag: 'Visits', summary: 'Edit a scheduled visit', roles: `${A}, ${C}`, body: updateVisitBody }],
   ['post', '/visits/{id}/status', { tag: 'Visits', summary: 'Mark a visit completed (requires OTP verification; investigator/admin), missed or cancelled', roles: STAFF, body: visitStatusBody }],
-  ['post', '/visits/{id}/otp', { tag: 'OTP', summary: 'Issue an OTP (supersedes any active one)', roles: STAFF, status: 201, description: 'Only an HMAC of the OTP is stored. The response includes `demoOtp` ONLY when DEMO_OTP_ENABLED=true outside production.' }],
-  ['get', '/visits/{id}/otp', { tag: 'OTP', summary: 'Latest OTP status (never the code)', roles: `${STAFF}, ${P} (own)` }],
+  ['post', '/visits/{id}/otp', { tag: 'OTP', summary: 'Issue an OTP and email it to the participant (staff only)', roles: STAFF, status: 201, description: 'Generates a code, emails it to the participant\'s linked portal account, and only then commits it (previous OTP superseded, visit -> `otp_pending`, audited). Only a keyed hash is stored and **the code is never returned**; the response carries `delivery` (`channel`, `status`, masked `recipientHint`, `cooldownSeconds`, `resendAvailableAt`). If the email cannot be sent nothing is committed. Errors: 409 `OTP_NO_RECIPIENT` (no linked / deactivated portal account), 429 `OTP_COOLDOWN` (60 s per visit, with `Retry-After`), 429 `RATE_LIMITED`, 502 `OTP_DELIVERY_FAILED`, 503 `OTP_DELIVERY_UNAVAILABLE` (no delivery channel configured; never falls back to showing the code). Development only: with `DEMO_OTP_ENABLED=true` and email off, `demoOtp` is returned instead of sending an email (cannot be combined with email delivery and is refused in production).' }],
+  ['get', '/visits/{id}/otp', { tag: 'OTP', summary: 'Latest OTP status (never the code); includes `delivery` with the masked address and resend availability', roles: `${STAFF}, ${P} (own)` }],
   ['post', '/visits/{id}/otp/verify', { tag: 'OTP', summary: 'Verify an OTP and mark the visit verified', roles: `${STAFF}, ${P} (own)`, body: verifyOtpBody, description: 'Errors: 400 OTP_INVALID (with remainingAttempts), 410 OTP_EXPIRED, 423 OTP_LOCKED, 409 OTP_NOT_ACTIVE (reuse / none issued). Every outcome is audited.' }],
   ['get', '/dev/visits/{id}/otp', { tag: 'OTP', summary: 'DEV ONLY: demo OTP last issued by this server process', roles: STAFF, description: 'Route exists only when DEMO_OTP_ENABLED=true and NODE_ENV is not production.' }],
+
+  // ---- ML input capture (feeds the risk features and the integrity trialData; see docs/ML_INTEGRATION.md)
+  ['post', '/patients/{patientId}/measurements', { tag: 'Capture', summary: 'Record the measurements taken at a visit (one set per visit)', roles: STAFF, body: createMeasurementBody, status: 201, description: 'Units are fixed and never converted: BP mmHg, heart rate bpm, weight kg, glucose mg/dL. `enteredAt`/`enteredBy` are set by the server. Values are only checked to be positive: implausible values stay storable (the integrity engine flags them). 409 if the visit already has a measurement set or was missed/cancelled; 404 if the visit is not this patient\'s. The measurement id is the visit id.' }],
+  ['get', '/patients/{patientId}/measurements', { tag: 'Capture', summary: 'List a patient\'s measurements', roles: `${STAFF}, ${P} (own)`, query: listMeasurementsQuery, paginated: true }],
+  ['get', '/measurements/{id}', { tag: 'Capture', summary: 'Get a measurement set (id = visit id)', roles: `${STAFF}, ${P} (own)` }],
+  ['post', '/patients/{patientId}/ecgs', { tag: 'Capture', summary: 'Register an ECG reference for a visit (one per visit)', roles: STAFF, body: createEcgBody, status: 201, description: 'Stores a REFERENCE (`fileRef`, relative to the shared ML_ECG_DIR; absolute paths and `..` are rejected), never image bytes. The file is not opened here: a missing file becomes an `ecg.file_unavailable` finding at scan time. A `fileRef` that other records already use is accepted on purpose (re-used ECGs are what the integrity engine detects). Participants do not see `fileRef`/`fileSha256`.' }],
+  ['get', '/patients/{patientId}/ecgs', { tag: 'Capture', summary: 'List a patient\'s ECG references', roles: `${STAFF}, ${P} (own)`, query: listEcgsQuery, paginated: true }],
+  ['get', '/ecgs/{id}', { tag: 'Capture', summary: 'Get an ECG reference', roles: `${STAFF}, ${P} (own)` }],
+  ['post', '/patients/{patientId}/reminders', { tag: 'Capture', summary: 'Log a reminder sent to a participant', roles: `${A}, ${C}`, body: createReminderBody, status: 201, description: 'Created with outcome `sent`. Give `enrollmentId` or `visitId` (a visit determines its enrollment). Resolve it with `PATCH /reminders/{id}`.' }],
+  ['get', '/patients/{patientId}/reminders', { tag: 'Capture', summary: 'List a patient\'s reminders', roles: `${STAFF}, ${P} (own)`, query: listRemindersQuery, paginated: true }],
+  ['get', '/reminders/{id}', { tag: 'Capture', summary: 'Get a reminder', roles: `${STAFF}, ${P} (own)` }],
+  ['patch', '/reminders/{id}', { tag: 'Capture', summary: 'Record the outcome of a reminder: acknowledged or missed', roles: `${A}, ${C}`, body: updateReminderBody, description: '`sent` -> `acknowledged` | `missed`, once; a resolved reminder is final (409 INVALID_STATE_TRANSITION). Only resolved reminders count towards `missed_reminders`. Audited.' }],
+  ['post', '/patients/{patientId}/adverse-events', { tag: 'Capture', summary: 'Report an adverse event', roles: `${STAFF}, ${P} (own)`, body: createAdverseEventBody, status: 201, description: 'The database records THAT an event was reported and when (`side_effects_reported`); it has no severity, type or free-text field, so none is accepted. Append-only: there is no update endpoint.' }],
+  ['get', '/patients/{patientId}/adverse-events', { tag: 'Capture', summary: 'List a patient\'s adverse-event reports', roles: `${STAFF}, ${P} (own)`, query: listAdverseEventsQuery, paginated: true }],
+  ['get', '/adverse-events/{id}', { tag: 'Capture', summary: 'Get an adverse-event report', roles: `${STAFF}, ${P} (own)` }],
 
   ['get', '/audit', { tag: 'Audit', summary: 'List audit events (filterable)', roles: `${A}, ${I}`, query: auditListQuery, paginated: true }],
   ['get', '/audit/verify', { tag: 'Audit', summary: 'Verify the entire hash chain; the attempt itself is recorded', roles: `${A}, ${I}`, description: 'Returns `valid`, `errors[]` (type: sequence_gap | prev_hash_mismatch | hash_mismatch | head_mismatch) and the chain head. Responds 200 even when invalid.' }],
@@ -89,6 +114,11 @@ const ROUTES: Array<[Method, string, Doc]> = [
   ['patch', '/actions/{id}', { tag: 'Actions', summary: 'Edit an open action (creator, assignee, admin)', roles: STAFF, body: updateActionBody }],
   ['post', '/actions/{id}/status', { tag: 'Actions', summary: 'Change status (creator, assignee, admin)', roles: STAFF, body: actionStatusBody }],
   ['get', '/actions/{id}/history', { tag: 'Actions', summary: 'Action status history', roles: STAFF }],
+
+  ['get', '/stats/operations', { tag: 'Stats', summary: 'Operational dashboard counts (patients, trials, enrollments, visits, actions, reimbursements)', roles: STAFF, description: 'SQL aggregates with zero-filled status keys. `actions.overdue` and `visits.pastDueUnverified` are derived at read time.' }],
+  ['get', '/stats/visits', { tag: 'Stats', summary: 'Visit status counts and the next open visits', roles: STAFF, query: visitStatsQuery }],
+  ['get', '/stats/reimbursements', { tag: 'Stats', summary: 'Reimbursement counts by status/payment status and amounts by currency', roles: STAFF, description: 'Money is grouped per currency and never summed across currencies.' }],
+  ['get', '/stats/sponsor', { tag: 'Stats', summary: 'Sponsor overview: trials, risk by level, integrity alerts, audit head', roles: `${A}, ${I}`, query: sponsorStatsQuery, description: 'Risk figures use each entity\'s latest assessment. The audit section reports counts only; it does not run chain verification (use GET /audit/verify).' }],
 
   ['post', '/risk/assessments', { tag: 'Risk', summary: 'Run the risk engine for a patient, visit or reimbursement', roles: STAFF, body: assessBody, status: 201 }],
   ['get', '/risk/assessments', { tag: 'Risk', summary: 'List stored risk assessments', roles: STAFF, query: listAssessmentsQuery, paginated: true }],
@@ -156,7 +186,7 @@ export function buildOpenApiDocument(config: AppConfig) {
         '**Audit chain:** a tamper-*evident* hash chain; it detects modification/deletion but does not make the database immutable.',
     },
     servers: [{ url: '/api/v1', description: `${config.env} server` }],
-    tags: ['Auth', 'Users', 'Patients', 'Trials', 'Enrollments', 'Visits', 'OTP', 'Audit', 'Reimbursements', 'Actions', 'Risk', 'Integrity'].map((name) => ({ name })),
+    tags: ['Auth', 'Users', 'Patients', 'Trials', 'Enrollments', 'Visits', 'OTP', 'Capture', 'Audit', 'Reimbursements', 'Actions', 'Risk', 'Integrity', 'Stats'].map((name) => ({ name })),
     paths,
     components: {
       securitySchemes: { bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' } },
@@ -176,7 +206,7 @@ export function buildOpenApiDocument(config: AppConfig) {
             error: {
               type: 'object',
               properties: {
-                code: { type: 'string', enum: ['VALIDATION_ERROR', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'INVALID_STATE_TRANSITION', 'OTP_INVALID', 'OTP_EXPIRED', 'OTP_LOCKED', 'OTP_NOT_ACTIVE', 'RATE_LIMITED', 'INTERNAL_ERROR'] },
+                code: { type: 'string', enum: ['VALIDATION_ERROR', 'UNAUTHENTICATED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'INVALID_STATE_TRANSITION', 'OTP_INVALID', 'OTP_EXPIRED', 'OTP_LOCKED', 'OTP_NOT_ACTIVE', 'OTP_NO_RECIPIENT', 'OTP_COOLDOWN', 'OTP_DELIVERY_FAILED', 'OTP_DELIVERY_UNAVAILABLE', 'RATE_LIMITED', 'INTERNAL_ERROR'] },
                 message: { type: 'string' }, details: {}, requestId: { type: 'string' },
               },
             },

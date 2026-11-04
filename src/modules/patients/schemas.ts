@@ -12,6 +12,8 @@ export const createPatientBody = z.object({
   email: z.string().email().max(254).optional(),
   phone: z.string().trim().max(30).optional(),
   userId: z.string().uuid().optional(),
+  /** Whether the participant earns a daily wage (a dropout-risk input). Omitted/null = unknown; unknown is not the same as false. */
+  dailyWageWorker: z.boolean().optional(),
 });
 
 export const updatePatientBody = createPatientBody
@@ -20,8 +22,17 @@ export const updatePatientBody = createPatientBody
   .extend({
     status: z.enum(['active', 'withdrawn', 'inactive']).optional(),
     userId: z.string().uuid().nullable().optional(),
+    dailyWageWorker: z.boolean().nullable().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, 'At least one field is required');
+
+export const linkAccountBody = z.object({ userId: z.string().uuid() });
+
+export const linkableAccountsQuery = z.object({
+  ...pageQuery,
+  order: z.enum(['asc', 'desc']).default('desc'),
+  search: z.string().trim().max(100).optional(),
+});
 
 export const listPatientsQuery = z.object({
   ...pageQuery,

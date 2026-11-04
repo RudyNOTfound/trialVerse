@@ -54,7 +54,52 @@ function patientFeatures(db: DB, id: string, now: number): FeatureMap {
     patient_unverified_overdue: unverified.c,
     patient_duplicate_reimbursements: duplicateCountForPatient(db, id),
     patient_reimbursement_total_30d_cents: vol.s,
+    ...participantModelFeatures(db, id, now),
   };
+}
+
+/**
+ * Dropout-model inputs (feature schema '2'), all derived from stored records. A value that cannot be established is `null`:
+ * never 0, never an average. The Python service refuses a participant whose REQUIRED inputs are null (HTTP 422) and the
+ * backend does not even send such a request, so an incomplete participant gets the baseline engine with a clear reason.
+ */
+function participantModelFeatures(db: DB, patientId: string, now: number): FeatureMap {
+  const nulls: FeatureMap = {
+    site_id: null, age: null, distance_km: null, daily_wage_worker: null, scheduled_visits: null, missed_reminders: null,
+    reimbursement_delay_days: null, side_effects_reported: null, phone_changed: null, visits_missed: null,
+  };
+  const p = db.prepare('SELECT date_of_birth, daily_wage_worker FROM patients WHERE id = ?').get(patientId) as { date_of_birth: string; daily_wage_worker: number | null };
+  // The enrollment that represents the participant now: enrolled, else screening, else the most recent other one.
+  const enr = db.prepare(
+    `SELECT e.id, e.distance_to_site_km, s.ml_site_category FROM enrollments e JOIN trial_sites s ON s.id = e.trial_site_id WHERE e.patient_id = ?
+     ORDER BY CASE e.status WHEN 'enrolled' THEN 0 WHEN 'screening' THEN 1 WHEN 'completed' THEN 2 ELSE 3 END, e.created_at DESC LIMIT 1`,
+  ).get(patientId) as { id: string; distance_to_site_km: number | null; ml_site_category: string | null } | undefined;
+
+  const dobMs = Date.parse(p.date_of_birth);
+  const ageYears = Number.isNaN(dobMs) ? null : Math.floor((now - dobMs) / (365.25 * 24 * H));
+  const out: FeatureMap = { ...nulls, age: ageYears !== null && ageYears >= 0 && ageYears <= 120 ? ageYears : null,
+    daily_wage_worker: p.daily_wage_worker, phone_changed: (db.prepare(
+      `SELECT EXISTS(SELECT 1 FROM audit_logs WHERE action = 'patient.updated' AND entity_id = ? AND json_extract(metadata, '$.changedFields') LIKE '%"phone"%') AS x`,
+    ).get(patientId) as { x: number }).x };
+
+  const paid = db.prepare(
+    `SELECT AVG(julianday(paid_at) - julianday(created_at)) AS d FROM reimbursements WHERE patient_id = ? AND payment_status = 'paid' AND paid_at IS NOT NULL`,
+  ).get(patientId) as { d: number | null };
+  if (paid.d !== null && paid.d >= 0 && paid.d <= 730) out.reimbursement_delay_days = Math.round(paid.d * 10) / 10;
+
+  if (!enr) return out;
+  out.site_id = enr.ml_site_category;                       // explicit mapping; unmapped site => null => baseline
+  out.distance_km = enr.distance_to_site_km;
+  const sched = (db.prepare(`SELECT COUNT(*) c FROM visits WHERE enrollment_id = ? AND status != 'cancelled'`).get(enr.id) as { c: number }).c;
+  out.scheduled_visits = sched >= 1 && sched <= 100 ? sched : null;
+  out.visits_missed = (db.prepare(`SELECT COUNT(*) c FROM visits WHERE enrollment_id = ? AND status = 'missed' AND scheduled_at <= ?`).get(enr.id, iso(now)) as { c: number }).c;
+  // Reminders: only RESOLVED outcomes count; with none resolved the answer is "unknown" (null), not 0.
+  const rem = db.prepare(
+    `SELECT COUNT(*) AS resolved, COALESCE(SUM(outcome = 'missed'), 0) AS missed FROM visit_reminders WHERE enrollment_id = ? AND outcome IN ('acknowledged','missed')`,
+  ).get(enr.id) as { resolved: number; missed: number };
+  out.missed_reminders = rem.resolved > 0 ? rem.missed : null;
+  out.side_effects_reported = (db.prepare('SELECT EXISTS(SELECT 1 FROM adverse_event_reports WHERE enrollment_id = ?) AS x').get(enr.id) as { x: number }).x;
+  return out;
 }
 
 function reimbursementFeatures(db: DB, id: string, now: number): FeatureMap {

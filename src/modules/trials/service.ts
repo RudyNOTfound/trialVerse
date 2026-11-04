@@ -3,6 +3,7 @@ import type { z } from 'zod';
 import type { Actor, Ctx } from '../../context';
 import { AppError } from '../../utils/errors';
 import { changedKeys, inTransaction, mapRow, mapRows, nowIso, orderBy, updateRow } from '../../utils/db';
+import { createLookups } from '../../utils/lookups';
 import { assertTransition, type TransitionMap } from '../../utils/stateMachine';
 import { appendAuditEvent } from '../audit/chain';
 import type { createEnrollmentBody, createSiteBody, createTrialBody, listEnrollmentsQuery, listTrialsQuery, updateSiteBody, updateTrialBody } from './schemas';
@@ -14,10 +15,16 @@ export interface TrialDto {
 export interface SiteDto {
   id: string; trialId: string; siteCode: string; name: string; city: string | null; country: string;
   principalInvestigatorId: string | null; status: string; createdAt: string; updatedAt: string;
+  timezone: string | null; mlSiteCategory: string | null;
+  /** Embedded display name (additive, read-only). */
+  principalInvestigatorName?: string | null;
 }
 export interface EnrollmentDto {
   id: string; patientId: string; trialId: string; trialSiteId: string; status: string; arm: string | null;
   enrolledAt: string | null; endedAt: string | null; createdAt: string; updatedAt: string;
+  distanceToSiteKm: number | null;
+  /** Embedded display names (additive, read-only). */
+  patientName?: string | null; patientCode?: string | null; trialCode?: string | null; trialTitle?: string | null; siteName?: string | null;
 }
 
 type TrialStatus = 'draft' | 'active' | 'suspended' | 'completed' | 'terminated';
@@ -39,13 +46,33 @@ export const ENROLLMENT_TRANSITIONS: TransitionMap<EnrollmentStatus> = {
 };
 
 const TRIAL_COLS = 'id, code, title, description, sponsor, phase, status, start_date, end_date, created_by, created_at, updated_at';
-const SITE_COLS = 'id, trial_id, site_code, name, city, country, principal_investigator_id, status, created_at, updated_at';
-const ENR_COLS = 'id, patient_id, trial_id, trial_site_id, status, arm, enrolled_at, ended_at, created_at, updated_at';
+const SITE_COLS = 'id, trial_id, site_code, name, city, country, principal_investigator_id, status, created_at, updated_at, timezone, ml_site_category';
+const ENR_COLS = 'id, patient_id, trial_id, trial_site_id, status, arm, enrolled_at, ended_at, created_at, updated_at, distance_to_site_km';
 
 const isUnique = (err: unknown) => (err as { code?: string }).code === 'SQLITE_CONSTRAINT_UNIQUE';
+const siteConflict = (err: unknown) =>
+  AppError.conflict(/ml_site_category/.test(String((err as Error).message))
+    ? 'Another site in this trial already uses that mlSiteCategory'
+    : 'This trial already has a site with that siteCode');
 
 export function createTrialService(ctx: Ctx) {
   const { db } = ctx;
+  const lookups = createLookups(db);
+
+  const siteWithNames = (items: SiteDto[]): SiteDto[] => {
+    const u = lookups.users(items.map((s) => s.principalInvestigatorId));
+    return items.map((s) => ({ ...s, principalInvestigatorName: s.principalInvestigatorId ? u.get(s.principalInvestigatorId)?.name ?? null : null }));
+  };
+  const enrollmentWithNames = (items: EnrollmentDto[]): EnrollmentDto[] => {
+    const p = lookups.patients(items.map((e) => e.patientId));
+    const t = lookups.trials(items.map((e) => e.trialId));
+    const s = lookups.sites(items.map((e) => e.trialSiteId));
+    return items.map((e) => ({
+      ...e,
+      patientName: p.get(e.patientId)?.name ?? null, patientCode: p.get(e.patientId)?.code ?? null,
+      trialCode: t.get(e.trialId)?.code ?? null, trialTitle: t.get(e.trialId)?.title ?? null, siteName: s.get(e.trialSiteId)?.name ?? null,
+    }));
+  };
 
   const getTrial = (id: string): TrialDto => {
     const t = mapRow<TrialDto>(db.prepare(`SELECT ${TRIAL_COLS} FROM trials WHERE id = ? AND deleted_at IS NULL`).get(id) as any);
@@ -55,12 +82,12 @@ export function createTrialService(ctx: Ctx) {
   const getSite = (trialId: string, siteId: string): SiteDto => {
     const s = mapRow<SiteDto>(db.prepare(`SELECT ${SITE_COLS} FROM trial_sites WHERE id = ? AND trial_id = ?`).get(siteId, trialId) as any);
     if (!s) throw AppError.notFound('Trial site');
-    return s;
+    return siteWithNames([s])[0]!;
   };
   const getEnrollment = (id: string): EnrollmentDto => {
     const e = mapRow<EnrollmentDto>(db.prepare(`SELECT ${ENR_COLS} FROM enrollments WHERE id = ?`).get(id) as any);
     if (!e) throw AppError.notFound('Enrollment');
-    return e;
+    return enrollmentWithNames([e])[0]!;
   };
   const assertInvestigator = (userId: string) => {
     const u = db.prepare('SELECT role, is_active FROM users WHERE id = ?').get(userId) as { role: string; is_active: number } | undefined;
@@ -139,13 +166,13 @@ export function createTrialService(ctx: Ctx) {
           getTrial(trialId);
           if (input.principalInvestigatorId) assertInvestigator(input.principalInvestigatorId);
           db.prepare(
-            `INSERT INTO trial_sites (id, trial_id, site_code, name, city, country, principal_investigator_id, status, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
-          ).run(id, trialId, input.siteCode, input.name, input.city ?? null, input.country, input.principalInvestigatorId ?? null, now, now);
-          appendAuditEvent(db, { actorId: actor.id, action: 'trial_site.created', entityType: 'trial_site', entityId: id, metadata: { trialId, siteCode: input.siteCode } });
+            `INSERT INTO trial_sites (id, trial_id, site_code, name, city, country, principal_investigator_id, status, timezone, ml_site_category, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)`,
+          ).run(id, trialId, input.siteCode, input.name, input.city ?? null, input.country, input.principalInvestigatorId ?? null, input.timezone ?? null, input.mlSiteCategory ?? null, now, now);
+          appendAuditEvent(db, { actorId: actor.id, action: 'trial_site.created', entityType: 'trial_site', entityId: id, metadata: { trialId, siteCode: input.siteCode, timezone: input.timezone ?? null, mlSiteCategory: input.mlSiteCategory ?? null } });
         });
       } catch (err) {
-        if (isUnique(err)) throw AppError.conflict('This trial already has a site with that siteCode');
+        if (isUnique(err)) throw siteConflict(err);
         throw err;
       }
       return getSite(trialId, id);
@@ -153,7 +180,7 @@ export function createTrialService(ctx: Ctx) {
 
     listSites(trialId: string): SiteDto[] {
       getTrial(trialId);
-      return mapRows<SiteDto>(db.prepare(`SELECT ${SITE_COLS} FROM trial_sites WHERE trial_id = ? ORDER BY site_code`).all(trialId) as any[]);
+      return siteWithNames(mapRows<SiteDto>(db.prepare(`SELECT ${SITE_COLS} FROM trial_sites WHERE trial_id = ? ORDER BY site_code`).all(trialId) as any[]));
     },
 
     updateSite(trialId: string, siteId: string, patch: z.infer<typeof updateSiteBody>, actor: Actor): SiteDto {
@@ -162,7 +189,12 @@ export function createTrialService(ctx: Ctx) {
         if (patch.principalInvestigatorId) assertInvestigator(patch.principalInvestigatorId);
         const keys = changedKeys(existing as unknown as Record<string, unknown>, patch);
         if (keys.length === 0) return;
-        updateRow(db, 'trial_sites', siteId, Object.fromEntries(keys.map((k) => [k, (patch as Record<string, unknown>)[k]])));
+        try {
+          updateRow(db, 'trial_sites', siteId, Object.fromEntries(keys.map((k) => [k, (patch as Record<string, unknown>)[k]])));
+        } catch (err) {
+          if (isUnique(err)) throw siteConflict(err);
+          throw err;
+        }
         appendAuditEvent(db, { actorId: actor.id, action: 'trial_site.updated', entityType: 'trial_site', entityId: siteId, metadata: { trialId, changedFields: keys } });
       });
       return getSite(trialId, siteId);
@@ -207,7 +239,21 @@ export function createTrialService(ctx: Ctx) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM enrollments ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { createdAt: 'created_at', enrolledAt: 'enrolled_at' }, 'created_at');
       const rows = db.prepare(`SELECT ${ENR_COLS} FROM enrollments ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as any[];
-      return { items: mapRows<EnrollmentDto>(rows), total };
+      return { items: enrollmentWithNames(mapRows<EnrollmentDto>(rows)), total };
+    },
+
+    /** PATCH /enrollments/:id: a status change and/or the participant's distance to the site. */
+    updateEnrollment(id: string, body: { status?: EnrollmentStatus; distanceToSiteKm?: number | null }, actor: Actor): EnrollmentDto {
+      if (body.status !== undefined) this.updateEnrollmentStatus(id, body.status, actor);
+      if (body.distanceToSiteKm !== undefined) {
+        inTransaction(db, () => {
+          const e = getEnrollment(id);
+          if (e.distanceToSiteKm === body.distanceToSiteKm) return;
+          updateRow(db, 'enrollments', id, { distanceToSiteKm: body.distanceToSiteKm });
+          appendAuditEvent(db, { actorId: actor.id, action: 'enrollment.updated', entityType: 'enrollment', entityId: id, metadata: { changedFields: ['distanceToSiteKm'], patientId: e.patientId, trialId: e.trialId } });
+        });
+      }
+      return getEnrollment(id);
     },
 
     updateEnrollmentStatus(id: string, status: EnrollmentStatus, actor: Actor): EnrollmentDto {

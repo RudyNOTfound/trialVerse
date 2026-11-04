@@ -1,0 +1,124 @@
+{
+  "input": {
+    "age": 52,
+    "daily_wage_worker": 1,
+    "distance_km": 40.0,
+    "missed_reminders": 2,
+    "participant_id": "P-A-001",
+    "phone_changed": 0,
+    "reimbursement_delay_days": 12,
+    "scheduled_visits": 8,
+    "side_effects_reported": 1,
+    "site_id": "SITE-A",
+    "visits_missed": 1
+  },
+  "prediction": {
+    "baseline_risk_score": 25.5,
+    "explanation_note": "Contributions show how the model's score depends on each input for this participant; they are statistical attributions, not evidence that a factor causes dropout.",
+    "explanation_status": "ok",
+    "flagged_for_support": true,
+    "model_version": "1.0.0+logistic_regression.0e359a5a",
+    "participant_id": "P-A-001",
+    "protective_factors": [
+      {
+        "contribution": -2.18,
+        "description": "Study site: SITE-A lowers the model's risk score by 2.2 points",
+        "direction": "decreases_risk",
+        "feature": "site_id",
+        "label": "Study site",
+        "value": "SITE-A"
+      },
+      {
+        "contribution": -1.25,
+        "description": "Phone number changed: no lowers the model's risk score by 1.3 points",
+        "direction": "decreases_risk",
+        "feature": "phone_changed",
+        "label": "Phone number changed",
+        "value": 0
+      }
+    ],
+    "recommended_actions": [
+      {
+        "action_type": "reminder_escalation",
+        "priority": "high",
+        "reason": "2 reminders were missed.",
+        "title": "Increase reminder frequency or use IVR calls"
+      },
+      {
+        "action_type": "reimbursement_priority",
+        "priority": "high",
+        "reason": "Reimbursements are taking about 12 days.",
+        "title": "Prioritise reimbursement resolution (instant payout where possible)"
+      },
+      {
+        "action_type": "remote_or_home_visit",
+        "priority": "medium",
+        "reason": "Lives 40 km from the site, so travel is a barrier to attending visits.",
+        "title": "Offer teleconsultation or a home visit"
+      },
+      {
+        "action_type": "flexible_scheduling",
+        "priority": "medium",
+        "reason": "Daily-wage worker: attending a visit may cost a day's income.",
+        "title": "Offer flexible visit scheduling"
+      },
+      {
+        "action_type": "clinician_follow_up",
+        "priority": "medium",
+        "reason": "The participant reported side effects; the study clinician should check in.",
+        "title": "Arrange a clinician follow-up call"
+      },
+      {
+        "action_type": "coordinator_follow_up",
+        "priority": "medium",
+        "reason": "1 earlier visit(s) were missed.",
+        "title": "Coordinator follow-up"
+      }
+    ],
+    "risk_level": "high",
+    "risk_score": 70.01,
+    "top_risk_factors": [
+      {
+        "contribution": 10.55,
+        "description": "Missed reminders: 2 raises the model's risk score by 10.5 points",
+        "direction": "increases_risk",
+        "feature": "missed_reminders",
+        "label": "Missed reminders",
+        "value": 2
+      },
+      {
+        "contribution": 10.42,
+        "description": "Reimbursement delay: 12 days raises the model's risk score by 10.4 points",
+        "direction": "increases_risk",
+        "feature": "reimbursement_delay_days",
+        "label": "Reimbursement delay",
+        "value": 12.0
+      },
+      {
+        "contribution": 8.69,
+        "description": "Daily-wage worker: yes raises the model's risk score by 8.7 points",
+        "direction": "increases_risk",
+        "feature": "daily_wage_worker",
+        "label": "Daily-wage worker",
+        "value": 1
+      },
+      {
+        "contribution": 8.51,
+        "description": "Distance from site: 40 km raises the model's risk score by 8.5 points",
+        "direction": "increases_risk",
+        "feature": "distance_km",
+        "label": "Distance from site",
+        "value": 40.0
+      },
+      {
+        "contribution": 7.83,
+        "description": "Side effects reported: yes raises the model's risk score by 7.8 points",
+        "direction": "increases_risk",
+        "feature": "side_effects_reported",
+        "label": "Side effects reported",
+        "value": 1
+      }
+    ],
+    "warnings": []
+  }
+}

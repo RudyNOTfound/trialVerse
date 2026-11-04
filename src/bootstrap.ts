@@ -3,6 +3,8 @@ import { createLogger, type Logger } from './config/logger';
 import type { Ctx } from './context';
 import { openDatabase } from './db/connection';
 import { runMigrations } from './db/migrate';
+import { createEmailService } from './email/service';
+import type { EmailProvider } from './email/types';
 import { createMlGateway } from './ml/gateway';
 import type { IntegrityModel, RiskModel } from './ml/contracts';
 import { BaselineIntegrityEngine } from './modules/integrity/baselineEngine';
@@ -15,6 +17,8 @@ export interface BuildOptions {
   /** In-process ML integration point (alternative to the HTTP model service). */
   riskModel?: RiskModel;
   integrityModel?: IntegrityModel;
+  /** Inject an email provider (tests / alternative vendor). Defaults to Resend when OTP_EMAIL_ENABLED=true. */
+  emailProvider?: EmailProvider;
   migrate?: boolean;
 }
 
@@ -29,5 +33,6 @@ export function buildContext(config: AppConfig, opts: BuildOptions = {}): Ctx {
     baselineIntegrity: new BaselineIntegrityEngine(config.ruleOverrides.integrity),
     riskModel: opts.riskModel, integrityModel: opts.integrityModel,
   });
-  return { db, config, logger, ml, demoOtp: new Map() };
+  const email = createEmailService(config, logger, opts.emailProvider);
+  return { db, config, logger, ml, email, demoOtp: new Map() };
 }

@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 import type { Actor, Ctx } from '../../context';
-import { CONTRACT_VERSION, FEATURE_SCHEMA_VERSION, type RiskAssessmentResult, type RiskEntityType, type RiskPredictionRequest } from '../../ml/contracts';
+import { CONTRACT_VERSION, featureSchemaVersionFor, type RiskAssessmentResult, type RiskEntityType, type RiskPredictionRequest } from '../../ml/contracts';
 import { inTransaction, mapRow, nowIso, orderBy } from '../../utils/db';
+import { entityLabels } from '../../utils/lookups';
 import { AppError } from '../../utils/errors';
 import { appendAuditEvent } from '../audit/chain';
 import { buildFeatures } from './features';
@@ -12,6 +13,8 @@ import type { assessBody, listAssessmentsQuery } from './schemas';
 export interface RiskAssessmentDto extends Omit<RiskAssessmentResult, 'engine' | 'fallback' | 'assessedAt'> {
   id: string; engine: { name: string; version: string }; fallback: { used: boolean; reason: string | null };
   assessedAt: string; requestedBy: string | null; createdAt: string;
+  /** Embedded display label for the assessed entity (additive, read-only). */
+  entityName?: string | null;
 }
 
 const JSON_COLS = ['triggered_rules'];
@@ -30,10 +33,15 @@ function toDto(row: Record<string, unknown>): RiskAssessmentDto {
 export function createRiskService(ctx: Ctx) {
   const { db } = ctx;
 
+  const withLabels = (items: RiskAssessmentDto[]): RiskAssessmentDto[] => {
+    const labels = entityLabels(db, items);
+    return items.map((a) => ({ ...a, entityName: labels.get(`${a.entityType}:${a.entityId}`) ?? null }));
+  };
+
   const get = (id: string): RiskAssessmentDto => {
     const row = db.prepare('SELECT * FROM risk_assessments WHERE id = ?').get(id) as Record<string, unknown> | undefined;
     if (!row) throw AppError.notFound('Risk assessment');
-    return toDto(row);
+    return withLabels([toDto(row)])[0]!;
   };
 
   return {
@@ -41,14 +49,15 @@ export function createRiskService(ctx: Ctx) {
 
     /** Gathers features, runs the configured engine (baseline or ML-with-fallback), persists + audits the result. */
     async assess(input: z.infer<typeof assessBody>, actor: Actor | null): Promise<RiskAssessmentDto> {
+      const nowMs = Date.now();   // one instant for both the features and requestedAt
       const request: RiskPredictionRequest = {
         contractVersion: CONTRACT_VERSION,
         requestId: randomUUID(),
         entityType: input.entityType as RiskEntityType,
         entityId: input.entityId,
-        featureSchemaVersion: FEATURE_SCHEMA_VERSION,
-        features: buildFeatures(db, input.entityType, input.entityId),
-        requestedAt: nowIso(),
+        featureSchemaVersion: featureSchemaVersionFor(input.entityType as RiskEntityType),
+        features: buildFeatures(db, input.entityType, input.entityId, nowMs),
+        requestedAt: new Date(nowMs).toISOString(),
       };
       const result = await ctx.ml.risk.assess(request);
 
@@ -80,7 +89,7 @@ export function createRiskService(ctx: Ctx) {
       const total = (db.prepare(`SELECT COUNT(*) c FROM risk_assessments ${w}`).get(...params) as { c: number }).c;
       const ob = orderBy(q.sort, q.order, { assessedAt: 'assessed_at', score: 'score' }, 'assessed_at');
       const rows = db.prepare(`SELECT * FROM risk_assessments ${w} ${ob} LIMIT ? OFFSET ?`).all(...params, q.pageSize, (q.page - 1) * q.pageSize) as Record<string, unknown>[];
-      return { items: rows.map(toDto), total };
+      return { items: withLabels(rows.map(toDto)), total };
     },
 
     /** Active rule configuration (defaults merged with env overrides), for transparency / UI. */
