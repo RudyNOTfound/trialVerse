@@ -1,6 +1,6 @@
 import * as D from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 export const Dialog = D.Root;
@@ -8,10 +8,15 @@ export const DialogTrigger = D.Trigger;
 export const DialogClose = D.Close;
 
 export function DialogContent({ title, description, children, className }: { title: string; description?: string; children: ReactNode; className?: string }) {
+  // Radix only returns focus to its own <Trigger>. These dialogs are opened from state (a table row, a button), so without this
+  // a keyboard or screen-reader user would be dropped at the top of the page when the dialog closes.
+  const opener = useRef<HTMLElement | null>(null);
   return (
     <D.Portal>
       <D.Overlay className="fixed inset-0 z-50 bg-navy-950/50 backdrop-blur-[2px]" />
       <D.Content
+        onOpenAutoFocus={() => { opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; }}
+        onCloseAutoFocus={(e) => { const el = opener.current; if (el && el.isConnected && el !== document.body) { e.preventDefault(); el.focus(); } }}
         className={cn(
           'fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-line bg-white p-6 shadow-xl',
           className,

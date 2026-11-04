@@ -44,7 +44,10 @@ export function DataTable<T>({ columns, rows, rowKey, loading, error, onRetry, o
               <tbody className="divide-y divide-line">
                 {rows.map((row) => (
                   <tr key={rowKey(row)} onClick={onRowClick ? () => onRowClick(row) : undefined}
-                    className={cn('transition-colors', onRowClick && 'cursor-pointer hover:bg-brand-50/50')}>
+                    // keyboard access: the row is focusable and Enter / Space open it, but only when the row itself has focus (a button inside keeps its own behaviour)
+                    tabIndex={onRowClick ? 0 : undefined}
+                    onKeyDown={onRowClick ? (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === e.currentTarget) { e.preventDefault(); onRowClick(row); } } : undefined}
+                    className={cn('transition-colors', onRowClick && 'cursor-pointer hover:bg-brand-50/50 focus-visible:bg-brand-50/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-500')}>
                     {columns.map((c) => <td key={c.header} className={cn('px-4 py-3 align-middle', c.hideOnMobile && 'hidden md:table-cell', c.className)}>{c.cell(row)}</td>)}
                   </tr>
                 ))}

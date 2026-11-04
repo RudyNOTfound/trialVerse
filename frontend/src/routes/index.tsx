@@ -27,6 +27,8 @@ const ActionsPage = lazy(() => import('@/features/actions/ActionsPage'));
 const SponsorOverview = lazy(() => import('@/features/sponsor/SponsorOverview'));
 const RiskPage = lazy(() => import('@/features/sponsor/RiskPage'));
 const IntegrityPage = lazy(() => import('@/features/sponsor/IntegrityPage'));
+const TrialIntegrityPage = lazy(() => import('@/features/integrity/TrialIntegrityPage'));
+const ParticipantRiskPage = lazy(() => import('@/features/risk/ParticipantRiskPage'));
 const AuditPage = lazy(() => import('@/features/sponsor/AuditPage'));
 const ParticipantHome = lazy(() => import('@/features/participant/ParticipantHome'));
 const ParticipantReimbursements = lazy(() => import('@/features/participant/ParticipantReimbursements'));
@@ -56,6 +58,7 @@ export const router = createBrowserRouter([
         { path: 'visits', element: <S><VisitsPage /></S> },
         { path: 'visits/:id', element: <S><VisitDetailPage /></S> },
         { path: 'reimbursements', element: <S><ReimbursementsPage /></S> },
+        { path: 'risk', element: <S><ParticipantRiskPage patientBase="/app/patients" /></S> },
         { path: 'actions', element: <S><ActionsPage /></S> },
         { path: '*', element: <Navigate to="/app" replace /> },
       ],
@@ -75,7 +78,9 @@ export const router = createBrowserRouter([
         { path: 'trials/:id', element: <S><TrialDetailPage backTo="/sponsor/trials" readOnly /></S> },
         { path: 'trials/:id/sites/:siteId', element: <S><SiteDetailPage base="/sponsor/trials" readOnly /></S> },
         { path: 'risk', element: <S><RiskPage /></S> },
-        { path: 'integrity', element: <S><IntegrityPage /></S> },
+        { path: 'participant-risk', element: <S><ParticipantRiskPage /></S> },
+        { path: 'integrity', element: <S><TrialIntegrityPage /></S> },
+        { path: 'integrity/alerts', element: <S><IntegrityPage /></S> },
         { path: 'audit', element: <S><AuditPage /></S> },
         { path: 'rules', element: <S><RulesPage /></S> },
         { path: '*', element: <Navigate to="/sponsor" replace /> },

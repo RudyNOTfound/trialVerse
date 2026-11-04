@@ -1,0 +1,113 @@
+{
+ "generatedAt": "2026-11-03T17:32:06.166Z",
+ "trials": {
+  "total": 4,
+  "byStatus": {
+   "draft": 1,
+   "active": 3,
+   "suspended": 0,
+   "completed": 0,
+   "terminated": 0
+  }
+ },
+ "risk": {
+  "basis": "latest assessment per entity",
+  "assessedEntities": 8,
+  "byLevel": {
+   "low": 2,
+   "medium": 1,
+   "high": 3,
+   "critical": 2
+  },
+  "byEntityType": {
+   "patient": {
+    "low": 2,
+    "medium": 1,
+    "high": 1,
+    "critical": 1
+   },
+   "reimbursement": {
+    "low": 0,
+    "medium": 0,
+    "high": 2,
+    "critical": 0
+   },
+   "visit": {
+    "low": 0,
+    "medium": 0,
+    "high": 0,
+    "critical": 1
+   }
+  },
+  "highOrCritical": 5,
+  "storedAssessments": 10,
+  "top": [
+   {
+    "id": "6154f23a-072a-43ec-9bc8-156e1322409e",
+    "entityType": "visit",
+    "entityId": "efddd2af-3cd1-42e9-9a56-a49455add012",
+    "entityName": "Week 2 \u00b7 Daniel Okafor",
+    "score": 85,
+    "level": "critical",
+    "assessedAt": "2026-11-03T17:03:43.000Z"
+   },
+   {
+    "id": "a5cc4d26-623e-4a0c-9ece-a8b2fc220920",
+    "entityType": "patient",
+    "entityId": "302f1300-3691-45f5-a951-62cd6c15bf2f",
+    "entityName": "Daniel Okafor",
+    "score": 80,
+    "level": "critical",
+    "assessedAt": "2026-11-03T17:03:42.999Z"
+   },
+   {
+    "id": "569b2757-64e6-43ec-9b4d-51c0c719e67a",
+    "entityType": "patient",
+    "entityId": "ad3d67fd-32ee-5047-8736-4e6b5be504b2",
+    "entityName": "Ramesh Verma",
+    "score": 69.2,
+    "level": "high",
+    "assessedAt": "2026-11-03T17:29:57.996Z"
+   },
+   {
+    "id": "b5cc0738-c0a0-4433-9a55-b9be730eda9d",
+    "entityType": "reimbursement",
+    "entityId": "f6bc3d7c-7bb6-4c97-8906-75d2a19b990b",
+    "entityName": "Daniel Okafor \u00b7 accommodation",
+    "score": 65,
+    "level": "high",
+    "assessedAt": "2026-11-03T17:03:43.002Z"
+   },
+   {
+    "id": "9ff0d426-fdab-4250-a4e4-4f71a8892782",
+    "entityType": "reimbursement",
+    "entityId": "a82dd053-347f-417b-9e0b-54e0f47e7339",
+    "entityName": "Daniel Okafor \u00b7 travel",
+    "score": 55,
+    "level": "high",
+    "assessedAt": "2026-11-03T17:03:43.001Z"
+   }
+  ]
+ },
+ "integrity": {
+  "total": 56,
+  "byStatus": {
+   "open": 55,
+   "acknowledged": 1,
+   "resolved": 0,
+   "dismissed": 0
+  },
+  "open": 55,
+  "openBySeverity": {
+   "low": 14,
+   "medium": 13,
+   "high": 28,
+   "critical": 0
+  }
+ },
+ "audit": {
+  "totalEvents": 231,
+  "headSeq": 231,
+  "lastEventAt": "2026-11-03T17:29:58.020Z"
+ }
+}
