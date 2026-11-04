@@ -32,6 +32,7 @@ const ParticipantRiskPage = lazy(() => import('@/features/risk/ParticipantRiskPa
 const AuditPage = lazy(() => import('@/features/sponsor/AuditPage'));
 const ParticipantHome = lazy(() => import('@/features/participant/ParticipantHome'));
 const ParticipantReimbursements = lazy(() => import('@/features/participant/ParticipantReimbursements'));
+const ParticipantRecords = lazy(() => import('@/features/participant/ParticipantRecords'));
 const ParticipantProfile = lazy(() => import('@/features/participant/ParticipantProfile'));
 const ParticipantVisits = lazy(() => import('@/features/participant/ParticipantVisits').then((m) => ({ default: m.ParticipantVisits })));
 const ParticipantVisitDetail = lazy(() => import('@/features/participant/ParticipantVisits').then((m) => ({ default: m.ParticipantVisitDetail })));
@@ -95,6 +96,7 @@ export const router = createBrowserRouter([
         { index: true, element: <S><ParticipantHome /></S> },
         { path: 'visits', element: <S><ParticipantVisits /></S> },
         { path: 'visits/:id', element: <S><ParticipantVisitDetail /></S> },
+        { path: 'records', element: <S><ParticipantRecords /></S> },
         { path: 'reimbursements', element: <S><ParticipantReimbursements /></S> },
         { path: 'profile', element: <S><ParticipantProfile /></S> },
         { path: '*', element: <Navigate to="/me" replace /> },

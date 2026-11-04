@@ -108,7 +108,7 @@ How to read them:
 * No participant-level retention trends: the API stores assessments but offers no time-series endpoint, so none is drawn.
 
 ## Tests
-`npm test` (Vitest + Testing Library, jsdom). Component tests run through the real axios client, API modules and interceptors with only the transport stubbed; their fixtures (`src/test/fixtures`) are responses captured from the real backend + Python service. `src/test/live.test.ts` runs the frontend's API layer against a running stack (skipped unless `TRIALVERSE_LIVE_API` and `TRIALVERSE_LIVE_PASSWORD` are set). There is no browser (E2E) suite: layout and responsive behaviour are not covered by tests.
+`npm test` (Vitest + Testing Library, jsdom). Component tests run through the real axios client, API modules and interceptors with only the transport stubbed; their fixtures (`src/test/fixtures`) are responses captured from the real backend + Python service. `src/test/live.test.ts` runs the frontend's API layer against a running stack (skipped unless `TRIALVERSE_LIVE_API` and `TRIALVERSE_LIVE_PASSWORD` are set). There is no automated browser (E2E) suite (the capture/reminder flow was verified manually in Chrome): layout and responsive behaviour are not covered by tests.
 
 ## Phase 3: backend integration
 
@@ -133,3 +133,11 @@ How to read them:
 
 - ML models behind `docs/ML_INTEGRATION.md`. The UI already displays `engine`, `fallback.used` and `fallback.reason` from assessments and scan results, so ML output will appear without frontend changes.
 - Any model-specific explainability fields (`factors`, `confidence`) are in the ML contract but not exposed by the current API responses; if added, extend `RiskAssessment` in `src/types/api.ts` and the detail dialog.
+
+## Data capture (staff patient page and participant "Records")
+
+`src/features/capture/CapturePanel.tsx`, backed by `src/api/capture.ts` and the backend capture endpoints (`/patients/:id/measurements|ecgs|reminders|adverse-events`, `PATCH /reminders/:id`).
+
+- **Staff** (`/app/patients/:id`): record a measurement (admin, coordinator, investigator), register an ECG *reference* (same roles), log a reminder and mark it acknowledged or missed (admin, coordinator), report a symptom (any staff).
+- **Participant** (`/me/records`): their own measurements, reminders and ECG metadata (no file path or hash), and a form to report a symptom. The server scopes everything to the signed-in patient.
+- ECGs are references to files under the backend's `ML_ECG_DIR`; nothing is uploaded. Blank measurement fields are sent as absent (never 0). A reminder is *missed* if not acknowledged within 24 hours; an empty reminder list means no data, not zero missed.
